@@ -1,0 +1,150 @@
+<style>
+  .navbar-custom {
+    font-family: "Poppins", sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    background: #0f2d1f;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(233, 248, 239, 0.12);
+    padding: 14px 0;
+  }
+
+  .navbar-custom .container-fluid {
+    max-width: 1200px;
+  }
+
+  .navbar-brand {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    color: #e9f8ef;
+    text-transform: uppercase;
+  }
+
+  .navbar-custom .nav-link {
+    color: #e9f8ef;
+    padding: 10px 16px;
+    margin-left: 6px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .navbar-custom .nav-link:hover,
+  .navbar-custom .nav-link:focus {
+    color: #0b140f;
+    background: #7de2b8;
+    box-shadow: 0 10px 20px rgba(16, 94, 63, 0.18);
+    transform: translateY(-1px) scale(1.01);
+  }
+
+  .navbar-custom .nav-link.active {
+    color: #0b140f !important;
+    background: #67d3a6;
+    box-shadow: 0 10px 22px rgba(16, 94, 63, 0.22);
+  }
+
+  .navbar-toggler {
+    border: none;
+  }
+
+  .navbar-toggler:focus {
+    box-shadow: 0 0 0 0.18rem rgba(233, 248, 239, 0.28);
+  }
+
+  .dropdown-hover:hover .dropdown-menu,
+  .dropdown-hover:focus-within .dropdown-menu {
+    display: block;
+    margin-top: 0;
+  }
+
+  .dropdown-menu {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+    padding: 10px 0;
+    background: #0f2d1f;
+  }
+
+  .dropdown-item {
+    color: #e9f8ef;
+    font-weight: 500;
+  }
+
+  .dropdown-item:hover,
+  .dropdown-item:focus {
+    background: #67d3a6;
+    color: #0b140f;
+  }
+</style>
+
+<nav class="navbar navbar-expand-sm navbar-dark navbar-custom fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Supermarket App</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <% if (!user) { %>
+          <li class="nav-item">
+            <a class="nav-link" href="/register">Register</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/login">Login</a>
+          </li>
+        <% } else if (user.role === 'admin') { %>
+          <li class="nav-item">
+            <a class="nav-link" href="/inventory">Inventory</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/addProduct">Add Product</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/order-dashboard">Orders</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/profile">Profile</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/logout">Logout</a>
+          </li>
+        <% } else { %>
+          <li class="nav-item">
+            <a class="nav-link" href="/shopping">Shopping</a>
+          </li>
+          <li class="nav-item dropdown dropdown-hover">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Categories
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <% if (categories && categories.length) { %>
+                <% categories.forEach(category => { %>
+                  <li>
+                    <a class="dropdown-item" href="/shopping?category=<%= encodeURIComponent(category) %>"><%= category %></a>
+                  </li>
+                <% }) %>
+              <% } else { %>
+                <li><span class="dropdown-item text-muted">No categories yet</span></li>
+              <% } %>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/cart">Cart</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/purchases">Purchases</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/profile">Profile</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/logout">Logout</a>
+          </li>
+        <% } %>
+      </ul>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,23 @@
+<% 
+  const successMessages = Array.isArray(locals.success) ? locals.success : (locals.success ? [locals.success] : []);
+  const errorMessages = Array.isArray(locals.error) ? locals.error : (locals.error ? [locals.error] : []);
+  const hasMessages = successMessages.length || errorMessages.length;
+%>
+
+<% if (hasMessages) { %>
+  <div class="container mt-3" aria-live="polite">
+    <% successMessages.forEach(function(message) { %>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= message %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% }); %>
+
+    <% errorMessages.forEach(function(message) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <%= message %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% }); %>
+  </div>
+<% } %>

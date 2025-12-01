@@ -1,0 +1,10 @@
+<div class="container">
+  <p style="text-align: center;">
+    <% if (user) {%>
+      <% if (user.role==="admin" ) { %> <br> Back to <a href="/inventory">inventory!</a>
+        <% } else { %> <br> Continue <a href="/shopping">Shopping!</a>
+          <% } %>
+            <% } else { %> <br> Welcome to supermarket app! <br> Please <a href="/login">login</a> to continue... <% }
+                %>
+  </p>
+</div>

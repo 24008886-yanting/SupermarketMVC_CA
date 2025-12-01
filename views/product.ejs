@@ -1,0 +1,355 @@
+<!-- product.ejs -->
+
+<style>
+    .product-page {
+        background: #f2f2f2;
+        min-height: 100vh;
+    }
+
+    .back-button {
+        position: sticky;
+        top: 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.6rem 1.05rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease, color 0.14s ease;
+    }
+
+    .back-button:hover {
+        background: linear-gradient(120deg, #0d6efd, #5ba8ff);
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 14px 32px rgba(13, 110, 253, 0.25);
+    }
+
+    .back-button:focus-visible {
+        outline: 3px solid rgba(13, 110, 253, 0.3);
+        outline-offset: 4px;
+    }
+
+    .product-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 24px;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .product-media {
+        background: #ffffff;
+        border-right: 1px solid #f1f3f5;
+    }
+
+    .gallery-wrapper {
+        position: relative;
+        border: 1px solid #e5e7eb;
+    }
+
+    .gallery-nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        color: #0d6efd;
+        transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    .gallery-nav-btn:hover {
+        background: #0d6efd;
+        color: #ffffff;
+        box-shadow: 0 14px 32px rgba(13, 110, 253, 0.22);
+        transform: translateY(-50%) translateY(-1px);
+    }
+
+    .gallery-nav-btn:disabled {
+        display: none;
+    }
+
+    .gallery-nav-btn.prev {
+        left: 12px;
+    }
+
+    .gallery-nav-btn.next {
+        right: 12px;
+    }
+
+    .thumb-btn {
+        border: 2px solid transparent;
+        padding: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        background: none;
+        transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .thumb-btn.active {
+        border-color: #0d6efd;
+        transform: translateY(-2px);
+    }
+
+    .badge-stock {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(25, 135, 84, 0.12);
+        color: #198754;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .price-tag {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0d6efd;
+        letter-spacing: -0.01em;
+    }
+
+    .detail-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .detail-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.55rem 0;
+        color: #6c757d;
+        border-bottom: 1px dashed #e5e7eb;
+    }
+
+    .detail-list li:last-child {
+        border-bottom: none;
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 0.25rem 0.65rem;
+        border-radius: 999px;
+        background: #f1f3f5;
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .cta-block {
+        background: #f8fbff;
+        border: 1px dashed #bfd7ff;
+        border-radius: 14px;
+        padding: 0.9rem 1.1rem;
+        color: #0d6efd;
+        font-weight: 600;
+    }
+</style>
+
+<% const backLink=user && user.role==="admin" ? "/inventory" : "/shopping" ; const backLabel=user && user.role==="admin"
+    ? "Back to Inventory" : "Back to Shopping" ; let additionalImages=[]; if (product && product.additionalImages) { if
+    (Array.isArray(product.additionalImages)) { additionalImages=product.additionalImages.filter(Boolean); } else { try
+    { const parsedImages=JSON.parse(product.additionalImages); additionalImages=Array.isArray(parsedImages) ?
+    parsedImages.filter(Boolean) : []; } catch (e) { additionalImages=product.additionalImages.split(',').map(img=>
+    img.trim()).filter(Boolean);
+    }
+    }
+    }
+    const galleryImages = [product && product.image, ...additionalImages].filter(Boolean);
+    const isOutOfStock = product && Number(product.quantity) <= 0; %>
+
+        <div class="product-page py-4">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <a href="<%= backLink %>" class="back-button">
+                        <span aria-hidden="true">&#8592;</span>
+                        <span>
+                            <%= backLabel %>
+                        </span>
+                    </a>
+                </div>
+
+                <% if (product) { %>
+                    <div class="product-card">
+                        <div class="row g-0 align-items-stretch">
+                            <div class="col-md-5 p-4 product-media d-flex flex-column gap-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span
+                                        class="badge-stock <%= isOutOfStock ? 'bg-light border-danger text-danger' : '' %>">
+                                        <%= isOutOfStock ? 'Out of stock' : `In stock: ${product.quantity}` %>
+                                    </span>
+                                </div>
+                                <% if (galleryImages.length) { %>
+                                    <div
+                                        class="bg-white rounded-4 p-3 text-center flex-grow-1 d-flex align-items-center justify-content-center gallery-wrapper">
+                                        <button type="button" class="gallery-nav-btn prev" id="productPrevBtn"
+                                            aria-label="Previous image">&#8592;</button>
+                                        <img id="productMainImage" src="/images/<%= galleryImages[0] %>"
+                                            alt="<%= product.productName %>" class="img-fluid"
+                                            style="max-height: 320px; object-fit: contain;">
+                                        <button type="button" class="gallery-nav-btn next" id="productNextBtn"
+                                            aria-label="Next image">&#8594;</button>
+                                    </div>
+                                    <% if (galleryImages.length> 1) { %>
+                                        <div class="d-flex flex-wrap gap-2 justify-content-center">
+                                            <% galleryImages.forEach(function(img, idx) { %>
+                                                <button type="button" class="thumb-btn" data-thumb-index="<%= idx %>"
+                                                    aria-label="View image <%= idx + 1 %>">
+                                                    <img src="/images/<%= img %>"
+                                                        alt="<%= product.productName %> image <%= idx + 1 %>"
+                                                        class="img-thumbnail"
+                                                        style="width: 72px; height: 72px; object-fit: cover; border: none;">
+                                                </button>
+                                                <% }) %>
+                                        </div>
+                                        <% } %>
+                                            <% } %>
+                            </div>
+
+                            <div class="col-md-7 p-4 p-md-5">
+                                <div class="d-flex flex-column gap-3">
+                                    <div>
+                                        <h3 class="mb-2">
+                                            <%= product.productName %>
+                                        </h3>
+                                        <div class="price-tag mb-1">$<%= product.price.toFixed(2) %>
+                                        </div>
+                                    </div>
+
+                                    <ul class="detail-list">
+                                        <li>
+                                            <span class="fw-semibold text-dark">Category:</span>
+                                            <span class="pill">
+                                                <%= product.category %>
+                                            </span>
+                                        </li>
+                                        <li>
+                                            <span class="fw-semibold text-dark">Halal:</span>
+                                            <span class="pill">
+                                                <%= product.halal ? "Yes" : "No" %>
+                                            </span>
+                                        </li>
+                                    </ul>
+
+                                    <% if (user && user.role==="user" ) { %>
+                                        <% if (isOutOfStock) { %>
+                                            <div class="alert alert-warning mb-0">
+                                                This item is currently out of stock. Please check back when it is
+                                                restocked.
+                                            </div>
+                                            <% } else { %>
+                                                <form class="d-flex flex-column flex-sm-row align-items-sm-end gap-3"
+                                                    action="/add-to-cart/<%= product.id %>" method="POST">
+                                                    <div>
+                                                        <label for="quantity" class="form-label mb-1">Quantity</label>
+                                                        <input type="number" id="quantity" name="quantity"
+                                                            class="form-control" min="1" max="<%= product.quantity %>"
+                                                            value="1" required>
+                                                    </div>
+                                                    <button type="submit"
+                                                        class="btn btn-primary px-4 py-2 fw-semibold">Add to
+                                                        Cart</button>
+                                                </form>
+                                                <% } %>
+                                                    <% } %>
+
+                                                        <div class="mt-4">
+                                                            <div class="p-3 border rounded-4 bg-white">
+                                                                <div class="mb-3">
+                                                                    <span
+                                                                        class="fw-semibold text-dark d-block">Origin</span>
+                                                                    <p class="mb-0 text-muted">
+                                                                        <%= product.origin || "Not specified" %>
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <span
+                                                                        class="fw-semibold text-dark d-block">Description</span>
+                                                                    <p class="mb-0 text-muted">
+                                                                        <%= product.description
+                                                                            || "No description provided." %>
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <% } else { %>
+                        <div class="text-center py-5">
+                            <p class="lead mb-1">No product found.</p>
+                            <p class="text-muted">Try returning to the previous page or refreshing.</p>
+                            <a href="<%= backLink %>" class="btn btn-outline-primary mt-2">Go Back</a>
+                        </div>
+                        <% } %>
+            </div>
+        </div>
+
+        <% if (product) { %>
+            <script>
+                (() => {
+                    // take note
+                    const galleryImages = JSON.parse('<%- JSON.stringify(galleryImages || []) %>');
+
+                    if (!galleryImages.length) return;
+
+                    const mainImage = document.getElementById('productMainImage');
+                    const prevBtn = document.getElementById('productPrevBtn');
+                    const nextBtn = document.getElementById('productNextBtn');
+                    const thumbButtons = Array.from(document.querySelectorAll('[data-thumb-index]'));
+
+                    let currentIndex = 0;
+
+                    const setImage = (index) => {
+                        currentIndex = (index + galleryImages.length) % galleryImages.length;
+                        if (mainImage) {
+                            mainImage.src = `/images/${galleryImages[currentIndex]}`;
+                            mainImage.setAttribute('aria-live', 'polite');
+                        }
+                        thumbButtons.forEach(btn => {
+                            const idx = Number(btn.getAttribute('data-thumb-index'));
+                            btn.classList.toggle('active', idx === currentIndex);
+                        });
+                    };
+
+                    const updateNavVisibility = () => {
+                        const shouldHide = galleryImages.length <= 1;
+                        [prevBtn, nextBtn].forEach(btn => {
+                            if (!btn) return;
+                            btn.disabled = shouldHide;
+                            btn.style.display = shouldHide ? 'none' : 'inline-flex';
+                        });
+                    };
+
+                    if (prevBtn) prevBtn.addEventListener('click', () => setImage(currentIndex - 1));
+                    if (nextBtn) nextBtn.addEventListener('click', () => setImage(currentIndex + 1));
+
+                    thumbButtons.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const idx = Number(btn.getAttribute('data-thumb-index'));
+                            if (!Number.isNaN(idx)) setImage(idx);
+                        });
+                    });
+
+                    updateNavVisibility();
+                    setImage(0);
+                })();
+            </script>
+            <% } %>

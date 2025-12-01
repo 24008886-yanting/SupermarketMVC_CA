@@ -1,0 +1,82 @@
+<div class="container my-5">
+    <h2 class="mb-4">Order Dashboard</h2>
+
+    <% if (orders && orders.length > 0) { %>
+        <% orders.forEach(order => { %>
+            <div class="order-box p-3 mb-4 border rounded bg-light">
+                <div class="order-header d-flex justify-content-between mb-2">
+                    <div>
+                        <strong>Order ID:</strong> <%= order.order_id %><br>
+                        <strong>Date:</strong> <%= new Date(order.created_at).toLocaleString() %>
+                    </div>
+                    <div class="text-end">
+                        <strong>User Email:</strong> <%= order.email %><br>
+                        <strong>Status:</strong> <%= order.status %>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <strong>Customer:</strong> <%= order.username %><br>
+                    <strong>Address:</strong> <%= order.address || 'N/A' %>
+                </div>
+
+                <table class="table table-bordered">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% let orderTotal = 0; %>
+                        <% if (order.items && order.items.length) { %>
+                            <% order.items.forEach(item => {
+                                const price = parseFloat(item.price) || 0;
+                                const qty = parseInt(item.quantity) || 0;
+                                const subtotal = price * qty;
+                                orderTotal += subtotal;
+                            %>
+                                <tr>
+                                    <td><%= item.product_name %></td>
+                                    <td><%= qty %></td>
+                                    <td>$<%= price.toFixed(2) %></td>
+                                    <td>$<%= subtotal.toFixed(2) %></td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No items found for this order.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                    <tfoot>
+                        <% const finalTotal = !isNaN(parseFloat(order.total_amount)) ? parseFloat(order.total_amount) : orderTotal; %>
+                        <tr>
+                            <th colspan="3" class="text-end">Order Subtotal</th>
+                            <th>$<%= orderTotal.toFixed(2) %></th>
+                        </tr>
+                        <tr>
+                            <th colspan="3" class="text-end">Order Total</th>
+                            <th>$<%= finalTotal.toFixed(2) %></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <p>No orders have been placed yet.</p>
+    <% } %>
+</div>
+
+<style>
+    .order-box {
+        padding: 20px;
+        border-radius: 10px;
+    }
+
+    .order-header {
+        margin-bottom: 10px;
+    }
+</style>

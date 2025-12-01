@@ -1,0 +1,13 @@
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    padding-top: 86px;
+    background: #f6f7fb;
+}
+
+main {
+    flex: 1;
+    padding: 24px 0 96px;
+}

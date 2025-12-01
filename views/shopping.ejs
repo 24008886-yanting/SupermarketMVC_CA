@@ -1,0 +1,364 @@
+
+<%- include('partials/flashMessages') %>
+
+<!-- Carousel -->
+
+<div id="demo" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000" data-bs-pause="false" data-bs-wrap="true">
+
+
+
+  <!-- Indicators -->
+
+  <div class="carousel-indicators">
+    <button type="button" data-bs-target="#demo" data-bs-slide-to="0" class="active"></button>
+    <button type="button" data-bs-target="#demo" data-bs-slide-to="1"></button>
+    <button type="button" data-bs-target="#demo" data-bs-slide-to="2"></button>
+  </div>
+
+
+
+  <!-- Slides -->
+
+  <div class="carousel-inner">
+    <div class="carousel-item active">
+      <img src="/images/homepage1.png" class="d-block w-100" alt="Slide 1">
+    </div>
+
+    <div class="carousel-item">
+      <img src="/images/homepage2.png" class="d-block w-100" alt="Slide 2">
+    </div>
+
+    <div class="carousel-item">
+      <img src="/images/homepage3.png" class="d-block w-100" alt="Slide 3">
+    </div>
+
+  </div>
+
+
+
+  <!-- Controls -->
+
+  <button class="carousel-control-prev" type="button" data-bs-target="#demo" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon"></span>
+  </button>
+
+  <button class="carousel-control-next" type="button" data-bs-target="#demo" data-bs-slide="next">
+    <span class="carousel-control-next-icon"></span>
+  </button>
+
+
+
+</div>
+
+
+
+
+
+<h2 class="text-center my-5 text-danger">Our Products</h2>
+
+<!-- Search -->
+<div class="container mb-4">
+  <form class="row g-2 justify-content-center" action="/shopping" method="get">
+    <div class="col-10 col-md-6 col-lg-5">
+      <input type="text" class="form-control" name="q" placeholder="Search products..."
+        value="<%= searchQuery || '' %>">
+    </div>
+    <% if (selectedCategory) { %>
+      <input type="hidden" name="category" value="<%= selectedCategory %>">
+    <% } %>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary px-4">Search</button>
+    </div>
+    <% if (searchQuery || selectedCategory) { %>
+      <div class="col-12 text-center text-muted small">
+        Showing <%= totalProducts %> product<%= totalProducts === 1 ? '' : 's' %>
+        <% if (searchQuery) { %>
+          for "<%= searchQuery %>"
+        <% } %>
+        <% if (selectedCategory) { %>
+          in category "<%= selectedCategory %>"
+        <% } %>
+        <a class="ms-2" href="/shopping">Clear</a>
+      </div>
+    <% } %>
+  </form>
+</div>
+
+
+
+
+
+<!-- PRODUCT GRID CARDS -->
+
+<div class="row g-3 justify-content-center">
+
+  <% if (products.length === 0) { %>
+    <div class="col-12 text-center text-muted py-5">
+      No products found.
+    </div>
+  <% } else { %>
+
+    <% products.forEach(product=> { 
+      const isOutOfStock = Number(product.quantity) <= 0;
+    %>
+
+      <div class="col-6 col-md-3">
+
+        <div class="card product-card">
+
+
+
+          <!-- Image wrapper -->
+
+          <a class="product-link" href="/product/<%= product.id %>">
+            <div class="product-img-wrapper">
+              <img src="/images/<%= product.image %>" alt="<%= product.productName %>">
+            </div>
+          </a>
+
+
+
+          <div class="card-body text-center">
+            <h6 class="card-title">
+              <a class="product-link" href="/product/<%= product.id %>">
+                <%= product.productName %>
+              </a>
+            </h6>
+
+            <p class="card-text text-primary">$<%= product.price.toFixed(2) %>
+
+            </p>
+
+            <p class="text-secondary small mb-1">
+              <% if (isOutOfStock) { %>
+                <span class="text-danger fw-semibold">Out of stock</span>
+              <% } else { %>
+                Stock: <%= product.quantity %>
+              <% } %>
+            </p>
+
+
+
+            <!-- d-flex justify-content-center = centers horizontally
+
+                w-50 = sets the width of the select to 50% (optional) -->
+
+            <div class="d-flex justify-content-center mb-2">
+              <select class="form-select w-50"
+                onchange="document.getElementById('quantity-<%= product.id %>').value = this.value" <%= isOutOfStock ? 'disabled' : '' %>>
+                <% for (let q=1; q <=5; q++) { %>
+                  <option value="<%= q %>">
+                    <%= q %>
+                  </option>
+                  <% } %>
+              </select>
+            </div>
+
+
+
+          </div>
+
+
+
+          <div class="card-footer border-0 bg-white text-center">
+            <% if (user && user.role === 'admin') { %>
+              <div class="text-muted small">Admins cannot add items to the cart.</div>
+            <% } else { %>
+
+              <% if (isOutOfStock) { %>
+                <button type="button" class="btn btn-secondary px-3" disabled>Unavailable</button>
+              <% } else { %>
+              <form action="/add-to-cart/<%= product.id %>" method="POST">
+                <input type="hidden" name="quantity" id="quantity-<%= product.id %>" value="1">
+                <button type="submit" class="btn btn-primary px-3">Buy</button>
+              </form>
+              <% } %>
+
+            <% } %>
+
+          </div>
+
+
+
+        </div>
+
+      </div>
+
+      <% }) %>
+
+  <% } %>
+
+</div>
+
+
+
+
+
+
+
+<!-- Pagination -->
+
+<nav aria-label="Page navigation example">
+
+  <ul class="pagination justify-content-center mt-5 mb-5">
+
+    <!-- Previous -->
+
+    <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+      <a class="page-link" href="/shopping?page=<%= currentPage - 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %><%= selectedCategory ? '&category=' + encodeURIComponent(selectedCategory) : '' %>">Previous</a>
+    </li>
+
+
+
+    <!-- Page numbers -->
+
+    <% for (let i=1; i <=totalPages; i++) { %>
+
+      <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+        <a class="page-link" href="/shopping?page=<%= i %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %><%= selectedCategory ? '&category=' + encodeURIComponent(selectedCategory) : '' %>">
+          <%= i %>
+        </a>
+      </li>
+
+      <% } %>
+
+
+
+        <!-- Next -->
+
+        <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+          <a class="page-link" href="/shopping?page=<%= currentPage + 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %><%= selectedCategory ? '&category=' + encodeURIComponent(selectedCategory) : '' %>">Next</a>
+        </li>
+
+  </ul>
+
+</nav>
+
+
+
+
+
+
+
+<style>
+
+  body {
+    background: #fafafa;
+  }
+
+
+
+  .carousel-item {
+    height: 420px;
+    background: #f8f9fa;
+  }
+
+
+
+  .carousel-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+  }
+
+
+
+  /* Product card style */
+  .product-card {
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    height: 360px;
+    /* FIXED card height */
+  }
+
+
+
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  }
+
+
+
+  /* Image container for consistent image display */
+  .product-img-wrapper {
+    height: 150px;
+    /* image area */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: white;
+    padding: 5px;
+  }
+
+
+
+  .product-img-wrapper img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    /* show full image */
+  }
+
+
+
+  card-body {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+
+
+  .card-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+
+
+  .product-link {
+    color: #1a1a1a;
+    text-decoration: none;
+  }
+
+
+
+  .product-link:hover {
+    color: #d63384;
+    text-decoration: none;
+  }
+
+
+
+  /* product price */
+  .card-text {
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+
+
+  /* quantity */
+  .form-select {
+    font-size: 13px;
+    padding: 2px 4px;
+    margin-bottom: 3px;
+  }
+
+
+
+  .btn {
+    font-size: 15px;
+    padding: 4px 12px;
+  }
+
+</style>
+

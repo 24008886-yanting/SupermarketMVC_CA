@@ -1,0 +1,234 @@
+<%- include('partials/flashMessages') %>
+
+<div class="container table-responsive rounded-3 border mt-4">
+  <h2 class="mt-4 mb-4">Shopping Cart</h2>
+
+  <%
+    const removedItemsList = typeof removedItems !== 'undefined' ? removedItems : cart.filter(item => item.isRemoved);
+    const outOfStockItems = cart.filter(item => (Number(item.available_quantity) || 0) <= 0 || item.isOutOfStock);
+    const overLimitItems = cart.filter(item => (Number(item.available_quantity) || 0) > 0 && item.quantity > item.available_quantity);
+    const blockCheckoutComputed = typeof blockCheckout !== 'undefined' ? blockCheckout : (outOfStockItems.length > 0 || removedItemsList.length > 0);
+    const hasStockProblems = typeof hasStockIssues !== 'undefined' ? hasStockIssues : (outOfStockItems.length || overLimitItems.length || removedItemsList.length);
+  %>
+
+  <% if (hasStockProblems) { %>
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+      <div>
+        Some items need your attention.
+        <% if (removedItemsList.length) { %>
+          Removed by admin: <%= removedItemsList.map(i => i.displayName || i.productName || 'Item').join(', ') %>. Remove them before checkout.
+        <% } %>
+        <% if (outOfStockItems.length) { %>
+          Out of stock: <%= outOfStockItems.map(i => i.displayName || i.productName || 'Item').join(', ') %>.
+        <% } %>
+        <% if (overLimitItems.length) { %>
+          Exceeds stock: <%= overLimitItems.map(i => i.displayName || i.productName || 'Item').join(', ') %>.
+        <% } %>
+        Please update or remove them before checking out.
+      </div>
+    </div>
+  <% } %>
+
+  <% if (cart.length===0) { %>
+    <p>Your cart is empty.</p>
+    <% } else { %>
+      <table class="table table-bordered text-center cart-table">
+        <thead class="table-secondary">
+          <tr>
+            <th>Product</th>
+            <th>Image</th>
+            <th>Quantity</th>
+            <th>Unit price</th>
+            <th>Subtotal</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% let total=0; %>
+            <% cart.forEach(item=> { %>
+              <% 
+                const isRemoved = !!item.isRemoved;
+                const available = isRemoved ? 0 : Math.max(0, Number(item.available_quantity) || 0);
+                const isOutOfStock = !isRemoved && ((Number(item.available_quantity) || 0) <= 0 || item.isOutOfStock);
+                const exceedsStock = !isOutOfStock && !isRemoved && item.quantity > available;
+                const billableQty = (isOutOfStock || isRemoved) ? 0 : Math.min(item.quantity, available);
+                const currentPrice = (item.currentPrice === 0 || item.currentPrice) ? Number(item.currentPrice) : Number(item.price) || 0;
+                const capturedPrice = (item.capturedPrice === 0 || item.capturedPrice) ? Number(item.capturedPrice) : (item.captured_price === 0 || item.captured_price) ? Number(item.captured_price) : null;
+                const priceChanged = !!item.priceChanged || (!isRemoved && capturedPrice !== null && Math.abs(currentPrice - capturedPrice) > 0.0001);
+                const unitPrice = typeof item.effectivePrice !== 'undefined' ? item.effectivePrice : currentPrice;
+                const subtotal = billableQty * unitPrice;
+              %>
+              <tr class="cart-row align-middle">
+                <td>
+                  <div class="d-flex flex-column align-items-center">
+                    <span><%= item.displayName || item.productName || 'Item' %></span>
+                    <% if (isRemoved) { %>
+                      <span class="badge bg-danger mt-1">Removed by admin</span>
+                    <% } else if (isOutOfStock) { %>
+                      <span class="badge bg-danger mt-1">Out of stock</span>
+                    <% } else if (exceedsStock) { %>
+                      <span class="badge bg-warning text-dark mt-1">Only <%= available %> left</span>
+                    <% } %>
+                    <% if (priceChanged) { %>
+                      <span class="badge bg-info text-dark mt-1">Price updated</span>
+                    <% } %>
+                  </div>
+                </td>
+                <td>
+                  <% if (!isRemoved && (item.displayImage || item.image)) { %>
+                    <img src="/images/<%= item.displayImage || item.image %>" class="cart-image" width="80">
+                  <% } else { %>
+                    <span class="text-muted small">Image unavailable</span>
+                  <% } %>
+                </td>
+                <td>
+                  <form id="update-form-<%= item.cart_id %>" action="/cart/update" method="POST" class="d-inline">
+                    <input type="hidden" name="cart_id" value="<%= item.cart_id %>">
+                    <div class="input-group input-group-sm justify-content-center align-items-center">
+                      <button type="button" class="btn btn-outline-secondary btn-qty" data-change="-1" <%= (isOutOfStock || isRemoved) ? 'disabled' : '' %>>-</button>
+                      <input type="number" class="form-control text-center cart-qty-input" name="quantity"
+                        value="<%= item.quantity %>" min="<%= (isOutOfStock || isRemoved) ? 0 : 1 %>" max="<%= available %>" data-available="<%= available %>" <%= (isOutOfStock || isRemoved) ? 'disabled' : '' %>>
+                      <button type="button" class="btn btn-outline-secondary btn-qty" data-change="1" <%= (isOutOfStock || isRemoved) ? 'disabled' : '' %>>+</button>
+                    </div>
+                    <div class="small text-muted mt-1">
+                      <% if (isRemoved) { %>
+                        <span class="text-danger">This item was removed by admin. Please remove it to continue.</span>
+                      <% } else if (isOutOfStock) { %>
+                        <span class="text-danger">Currently unavailable. Remove the item or wait for restock.</span>
+                      <% } else { %>
+                        In stock: <%= available %>
+                        <% if (exceedsStock) { %>
+                          <span class="text-danger ms-1">Reduce quantity to proceed.</span>
+                        <% } %>
+                      <% } %>
+                    </div>
+                  </form>
+                </td>
+                <td>
+                  <% if (isRemoved) { %>
+                    <span class="text-danger">N/A</span>
+                  <% } else { %>
+                    $<%= (unitPrice || 0).toFixed(2) %>
+                    <% if (priceChanged && capturedPrice !== null) { %>
+                      <div class="small text-muted">Was $<%= capturedPrice.toFixed(2) %></div>
+                    <% } %>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (isRemoved) { %>
+                    <span class="text-danger">Removed</span>
+                  <% } else if (isOutOfStock) { %>
+                    <span class="text-danger">Unavailable</span>
+                  <% } else { %>
+                    $<%= subtotal.toFixed(2) %>
+                  <% } %>
+                </td>
+                <td>
+                  <div class="d-flex flex-column align-items-center cart-actions">
+                    <button type="submit" form="update-form-<%= item.cart_id %>" class="btn btn-outline-primary btn-sm cart-update-btn" <%= (isOutOfStock || isRemoved) ? 'disabled' : '' %>>Update quantity</button>
+                    <form action="/cart/delete" method="POST">
+                      <input type="hidden" name="cart_id" value="<%= item.cart_id %>">
+                      <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <% total += subtotal; %>
+                <% }) %>
+        </tbody>
+
+        <tfoot>
+          <tr>
+            <th colspan="4" class="text-end border-end-0 table-secondary">Total</th>
+            <th colspan="2" class="border-start-0 table-secondary">$<%= total.toFixed(2) %>
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="d-flex justify-content-between mt-4 mb-4">
+        <a href="/shopping" class="btn btn-secondary">Back to Shopping</a>
+        <div>
+          <form action="/cart/clear" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-outline-danger me-2">Clear Cart</button>
+          </form>
+          <form action="/cart/checkout" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-success" <%= blockCheckoutComputed ? 'disabled' : '' %>>Checkout</button>
+          </form>
+          <% if (blockCheckoutComputed) { %>
+            <div class="text-danger small text-end mt-1">Remove out-of-stock or deleted items before checkout.</div>
+          <% } else if (hasStockProblems) { %>
+            <div class="text-warning small text-end mt-1">Adjust quantities to match available stock.</div>
+          <% } %>
+        </div>
+      </div>
+      <% } %>
+</div>
+
+<style>
+  .cart-qty-input {
+    max-width: 72px;
+    text-align: center;
+    padding: 0.2rem 0.4rem;
+    height: 32px;
+    line-height: 1.2;
+  }
+  .btn-qty {
+    padding: 0.2rem 0.55rem;
+    min-width: 32px;
+  }
+  .cart-update-btn {
+    padding: 0.2rem 0.65rem;
+    font-size: 0.8rem;
+    border-radius: 999px;
+  }
+  .cart-actions { gap: 0.35rem; }
+  .cart-table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+  .cart-table th,
+  .cart-table td {
+    border: 1px solid #dee2e6;
+    background-color: #fff;
+    padding: 1rem 0.75rem;
+  }
+  .cart-row { height: 120px; }
+  .cart-table td { vertical-align: middle; }
+  .cart-table tbody tr + tr td { border-top-width: 2px; }
+  .cart-image {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const clampValue = (input, proposed) => {
+      const maxAttr = parseInt(input.max, 10);
+      const max = Number.isNaN(maxAttr) ? Infinity : Math.max(0, maxAttr);
+      const minAttr = parseInt(input.min, 10);
+      const min = Number.isNaN(minAttr) ? 1 : Math.max(0, minAttr);
+      return Math.max(min, Math.min(max, proposed));
+    };
+
+    document.querySelectorAll('.cart-qty-input').forEach((input) => {
+      if (input.disabled) return;
+      const current = parseInt(input.value, 10) || 1;
+      const clamped = clampValue(input, current);
+      if (clamped !== current) input.value = clamped;
+    });
+
+    document.querySelectorAll('.btn-qty').forEach((btn) => {
+      if (btn.disabled) return;
+      btn.addEventListener('click', () => {
+        const input = btn.closest('form').querySelector('.cart-qty-input');
+        const change = parseInt(btn.dataset.change, 10) || 0;
+        const current = parseInt(input.value, 10) || 1;
+        const next = clampValue(input, current + change);
+        input.value = next;
+      });
+    });
+  });
+</script>
