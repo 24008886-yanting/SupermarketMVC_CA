@@ -105,12 +105,21 @@ const OrderController = {
         });
     },
 
-    // Show invoice page
+    // Show invoice page (only owner or admin)
     showInvoice: (req, res) => {
         const orderId = req.params.orderId;
+        const user = req.session.user;
+        if (!user) return res.redirect('/login');
 
         Order.getById(orderId, (err, order) => {
             if (err || !order) return res.status(404).send('Order not found');
+
+            // Enforce ownership unless user is admin
+            const isAdmin = user.role === 'admin';
+            if (!isAdmin && Number(order.user_id) !== Number(user.user_id)) {
+                req.flash('error', 'You do not have access to this invoice.');
+                return res.redirect('/purchases');
+            }
 
             OrderItemController.getItemsByOrderId(orderId, (err2, items) => {
                 if (err2) return res.status(500).send('Failed to get order items');
@@ -118,7 +127,7 @@ const OrderController = {
                 res.render('invoice', { 
                     layout: 'layout',       // use layout.ejs
                     title: 'Invoice',       // page title
-                    user: req.session.user, // for navbar/footer
+                    user,                   // for navbar/footer
                     order, 
                     items,
                     orderSummary: computeOrderTotals(items, order.total_amount, order.shipping_fee),
