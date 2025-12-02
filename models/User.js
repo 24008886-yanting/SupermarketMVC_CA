@@ -4,20 +4,27 @@ const crypto = require('crypto');
 const User = {
     // Register new user (optional: hash with SHA-1 if registering new)
     register: ({ username, email, password, address, contact, role }, callback) => {
-        // Hash password with SHA-1 before saving
+        const normalizedEmail = email.trim().toLowerCase();
         const hashedPassword = crypto.createHash('sha1').update(password).digest('hex');
 
-        const sql = 'INSERT INTO users (username, email, password, address, contact, role) VALUES (?, ?, ?, ?, ?, ?)';
-        db.query(sql, [username, email, hashedPassword, address, contact, role], (err, result) => {
-            if (err) return callback(err, null);
-            callback(null, { user_id: result.insertId, username, email, address, contact, role });
+        const checkSql = 'SELECT id FROM users WHERE email = ? LIMIT 1';
+        db.query(checkSql, [normalizedEmail], (checkErr, rows) => {
+            if (checkErr) return callback(checkErr, null);
+            if (rows.length) return callback(new Error('EMAIL_EXISTS'), null);
+
+            const sql = 'INSERT INTO users (username, email, password, address, contact, role) VALUES (?, ?, ?, ?, ?, ?)';
+            db.query(sql, [username, normalizedEmail, hashedPassword, address, contact, role], (err, result) => {
+                if (err) return callback(err, null);
+                callback(null, { user_id: result.insertId, username, email: normalizedEmail, address, contact, role });
+            });
         });
     },
 
     // Login user
     login: (email, password, callback) => {
+        const normalizedEmail = email.trim().toLowerCase();
         const sql = 'SELECT * FROM users WHERE email = ?';
-        db.query(sql, [email], (err, results) => {
+        db.query(sql, [normalizedEmail], (err, results) => {
             if (err) return callback(err, null);
 
             const user = results[0];
@@ -35,8 +42,9 @@ const User = {
     },
 
     findByEmail: (email, callback) => {
+        const normalizedEmail = email.trim().toLowerCase();
         const sql = 'SELECT id, username, email, address, contact, role FROM users WHERE email = ? LIMIT 1';
-        db.query(sql, [email], (err, results) => {
+        db.query(sql, [normalizedEmail], (err, results) => {
             if (err) return callback(err, null);
             if (results.length === 0) return callback(null, null);
             callback(null, results[0]);
@@ -75,6 +83,3 @@ const User = {
 };
 
 module.exports = User;
-
-
-

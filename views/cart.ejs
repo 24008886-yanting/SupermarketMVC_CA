@@ -1,9 +1,12 @@
+<!-- Shopping cart page with stock validation and checkout controls -->
+<!-- Flash messages -->
 <%- include('partials/flashMessages') %>
 
 <div class="container table-responsive rounded-3 border mt-4">
   <h2 class="mt-4 mb-4">Shopping Cart</h2>
 
   <%
+    // Derive cart state for removed and out-of-stock items
     const removedItemsList = typeof removedItems !== 'undefined' ? removedItems : cart.filter(item => item.isRemoved);
     const outOfStockItems = cart.filter(item => (Number(item.available_quantity) || 0) <= 0 || item.isOutOfStock);
     const overLimitItems = cart.filter(item => (Number(item.available_quantity) || 0) > 0 && item.quantity > item.available_quantity);
@@ -12,6 +15,7 @@
   %>
 
   <% if (hasStockProblems) { %>
+    <!-- Stock and removal alerts -->
     <div class="alert alert-warning d-flex align-items-center" role="alert">
       <div>
         Some items need your attention.
@@ -32,6 +36,7 @@
   <% if (cart.length===0) { %>
     <p>Your cart is empty.</p>
     <% } else { %>
+      <!-- Cart detail table -->
       <table class="table table-bordered text-center cart-table">
         <thead class="table-secondary">
           <tr>
@@ -82,6 +87,7 @@
                   <% } %>
                 </td>
                 <td>
+                  <!-- Quantity adjuster -->
                   <form id="update-form-<%= item.cart_id %>" action="/cart/update" method="POST" class="d-inline">
                     <input type="hidden" name="cart_id" value="<%= item.cart_id %>">
                     <div class="input-group input-group-sm justify-content-center align-items-center">
@@ -138,14 +144,45 @@
         </tbody>
 
         <tfoot>
+          <%
+            const summary = cartSummary || {};
+            const itemsSubtotal = typeof summary.subtotal === 'number' ? summary.subtotal : total;
+            const shippingThreshold = typeof summary.shippingThreshold === 'number' ? summary.shippingThreshold : 60;
+            const baseShippingFee = typeof summary.shippingBaseFee === 'number' ? summary.shippingBaseFee : 5.9;
+            const shippingFee = typeof summary.shippingFee === 'number' ? summary.shippingFee : ((itemsSubtotal > 0 && itemsSubtotal < shippingThreshold) ? baseShippingFee : 0);
+            const grandTotal = typeof summary.total === 'number' ? summary.total : (itemsSubtotal + shippingFee);
+            const qualifiesForFreeShipping = itemsSubtotal >= shippingThreshold || itemsSubtotal === 0;
+          %>
           <tr>
-            <th colspan="4" class="text-end border-end-0 table-secondary">Total</th>
-            <th colspan="2" class="border-start-0 table-secondary">$<%= total.toFixed(2) %>
+            <th colspan="4" class="text-end border-end-0 table-secondary">Items Subtotal</th>
+            <th colspan="2" class="border-start-0 table-secondary">$<%= itemsSubtotal.toFixed(2) %></th>
+          </tr>
+          <tr>
+            <th colspan="4" class="text-end border-end-0">Shipping <span class="text-muted">(Free over $<%= shippingThreshold.toFixed(2) %>)</span></th>
+            <th colspan="2" class="border-start-0">
+              <% if (qualifiesForFreeShipping) { %>
+                <span class="text-success">Free</span>
+              <% } else { %>
+                $<%= shippingFee.toFixed(2) %>
+              <% } %>
             </th>
+          </tr>
+          <tr>
+            <th colspan="4" class="text-end border-end-0 table-secondary">Order Total</th>
+            <th colspan="2" class="border-start-0 table-secondary">$<%= grandTotal.toFixed(2) %></th>
           </tr>
         </tfoot>
       </table>
 
+      <div class="text-end mb-2">
+        <% if (cart.length && !qualifiesForFreeShipping && itemsSubtotal > 0) { %>
+          <span class="text-muted small">Add $<%= Math.max(0, shippingThreshold - itemsSubtotal).toFixed(2) %> more to unlock free shipping.</span>
+        <% } else if (qualifiesForFreeShipping && itemsSubtotal > 0) { %>
+          <span class="text-success small">You qualify for free shipping.</span>
+        <% } %>
+      </div>
+
+      <!-- Cart actions: back, clear, checkout -->
       <div class="d-flex justify-content-between mt-4 mb-4">
         <a href="/shopping" class="btn btn-secondary">Back to Shopping</a>
         <div>
@@ -165,6 +202,7 @@
       <% } %>
 </div>
 
+<!-- Cart page styles -->
 <style>
   .cart-qty-input {
     max-width: 72px;
@@ -203,6 +241,7 @@
   }
 </style>
 
+<!-- Quantity clamping and button handlers -->
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const clampValue = (input, proposed) => {

@@ -20,7 +20,7 @@ const UserController = {
         const userRole = role || 'user';
 
         const errors = [];
-        const emailPattern = /^[^\s@]+@[^\s@]+$/;
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/;
 
         if (!username || !email || !password || !address || !contact) {
@@ -28,7 +28,7 @@ const UserController = {
         }
 
         if (email && !emailPattern.test(email)) {
-            errors.push('Please use a valid email (format: name@example.com).');
+            errors.push('Please use a valid email (format: name@example.xx).');
         }
 
         if (password && !passwordPattern.test(password)) {

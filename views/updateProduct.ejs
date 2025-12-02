@@ -1,9 +1,10 @@
-<!-- Main content -->
+<!-- Admin form for updating an existing product -->
 <div class="container mt-4">
   <h2 class="text-center mb-4">Update Product</h2>
 
   <% if (product) { %>
     <% 
+      // Prepare additional images array from stored product data
       let additionalImages = [];
       if (Array.isArray(product.additionalImages)) {
         additionalImages = product.additionalImages.filter(Boolean);
@@ -16,14 +17,16 @@
         }
       }
     %>
-    <form action="/updateProduct/<%= product.id %>" method="POST" enctype="multipart/form-data" class="mx-auto"
-      style="max-width: 650px;">
+    <!-- Update product form -->
+    <form action="/updateProduct/<%= product.id %>" method="POST" enctype="multipart/form-data" class="mx-auto" style="max-width: 650px;">
 
+      <!-- Product name input -->
       <div class="mb-3">
         <label for="name" class="form-label">Product Name</label>
         <input type="text" class="form-control" id="name" name="name" value="<%= product.productName %>" required>
       </div>
 
+      <!-- Category dropdown -->
       <div class="mb-3">
         <label for="category" class="form-label">Category</label>
         <select class="form-select" id="category" name="category" required>
@@ -42,16 +45,19 @@
         </select>
       </div>
 
+      <!-- Origin input -->
       <div class="mb-3">
         <label for="origin" class="form-label">Origin</label>
         <input type="text" class="form-control" id="origin" name="origin" value="<%= product.origin || '' %>" required>
       </div>
 
+      <!-- Description input -->
       <div class="mb-3">
         <label for="description" class="form-label">Description</label>
         <textarea class="form-control" id="description" name="description" rows="3"><%= product.description || '' %></textarea>
       </div>
 
+      <!-- Halal status selector -->
       <div class="mb-3">
         <label for="halal" class="form-label">Halal</label>
         <select class="form-select" id="halal" name="halal" required>
@@ -60,30 +66,35 @@
         </select>
       </div>
 
+      <!-- Quantity input -->
       <div class="mb-3">
         <label for="quantity" class="form-label">Quantity</label>
         <input type="number" class="form-control" id="quantity" name="quantity" min="0" step="1"
           value="<%= product.quantity %>" required>
       </div>
 
+      <!-- Price input -->
       <div class="mb-3">
         <label for="price" class="form-label">Price</label>
         <input type="number" class="form-control" id="price" name="price" min="0" step="0.01"
           value="<%= product.price %>" required>
       </div>
 
+      <!-- Current primary image preview -->
       <div class="mb-3">
         <label class="form-label">Current Image</label>
         <input type="text" class="form-control" name="currentImage" value="<%= product.image %>" readonly>
         <img src="/images/<%= product.image %>" class="img-thumbnail mt-2" style="width: 150px;">
       </div>
 
+      <!-- Upload new primary image -->
       <div class="mb-3">
         <label for="image" class="form-label">Upload New Primary Image</label>
         <input class="form-control" type="file" id="image" name="image" accept="image/*" >
       </div>
 
       <% if (additionalImages.length) { %>
+        <!-- Current additional images gallery -->
         <div class="mb-3">
           <label class="form-label">Current Additional Images</label>
           <div class="d-flex flex-wrap gap-2">
@@ -94,12 +105,14 @@
         </div>
       <% } %>
 
+      <!-- Upload additional images -->
       <div class="mb-4">
         <label for="additionalImages" class="form-label">Add More Images</label>
         <input class="form-control" type="file" id="additionalImages" name="additionalImages" accept="image/*" multiple>
         <input type="hidden" name="existingAdditionalImages" value="<%= additionalImages.join(',') %>">
       </div>
 
+      <!-- Action buttons -->
       <div class="d-grid gap-2">
         <button type="submit" class="btn btn-primary">Update Product</button>
         <a href="/inventory" class="btn btn-secondary">Back to Inventory</a>

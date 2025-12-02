@@ -1,5 +1,8 @@
 const Cart = require('../models/Cart');
 
+const SHIPPING_THRESHOLD = 60;
+const SHIPPING_FEE = 5.9;
+
 const CartController = {
     // View cart
     viewCart: (req, res) => {
@@ -43,6 +46,14 @@ const CartController = {
             const removedItems = enrichedCart.filter(item => item.isRemoved);
             const priceChangedItems = enrichedCart.filter(item => item.priceChanged && !item.isRemoved);
             const blockCheckout = hasOutOfStock || removedItems.length > 0;
+            const subtotal = enrichedCart.reduce((sum, item) => {
+                const quantity = Math.max(0, Number(item.quantity) || 0);
+                const available = Math.max(0, Number(item.available_quantity) || 0);
+                const billableQty = (item.isOutOfStock || item.isRemoved) ? 0 : Math.min(quantity, available);
+                const unitPrice = Number(item.effectivePrice) || 0;
+                return sum + (billableQty * unitPrice);
+            }, 0);
+            const shippingFee = subtotal > 0 && subtotal < SHIPPING_THRESHOLD ? SHIPPING_FEE : 0;
 
             res.render('cart', { 
                 layout: 'layout',       // use layout.ejs
@@ -53,7 +64,14 @@ const CartController = {
                 hasStockIssues,
                 removedItems,
                 priceChangedItems,
-                blockCheckout
+                blockCheckout,
+                cartSummary: {
+                    subtotal,
+                    shippingFee,
+                    total: subtotal + shippingFee,
+                    shippingThreshold: SHIPPING_THRESHOLD,
+                    shippingBaseFee: SHIPPING_FEE
+                }
             });
         });
     },

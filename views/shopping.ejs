@@ -1,4 +1,5 @@
-
+<!-- Product browsing page with search, filters, and carousel -->
+<!-- Flash messages -->
 <%- include('partials/flashMessages') %>
 
 <!-- Carousel -->
@@ -56,11 +57,11 @@
 
 <h2 class="text-center my-5 text-danger">Our Products</h2>
 
-<!-- Search -->
+<!-- Search form with query and optional category filter -->
 <div class="container mb-4">
   <form class="row g-2 justify-content-center" action="/shopping" method="get">
     <div class="col-10 col-md-6 col-lg-5">
-      <input type="text" class="form-control" name="q" placeholder="Search products..."
+      <input type="text" class="form-control" id="searchInput" name="q" placeholder="Search products..."
         value="<%= searchQuery || '' %>">
     </div>
     <% if (selectedCategory) { %>
@@ -115,9 +116,7 @@
               <img src="/images/<%= product.image %>" alt="<%= product.productName %>">
             </div>
           </a>
-
-
-
+          <!-- Product info: name, price, stock -->
           <div class="card-body text-center">
             <h6 class="card-title">
               <a class="product-link" href="/product/<%= product.id %>">
@@ -139,9 +138,7 @@
 
 
 
-            <!-- d-flex justify-content-center = centers horizontally
-
-                w-50 = sets the width of the select to 50% (optional) -->
+            <!-- Quantity selector for add-to-cart dropdown -->
 
             <div class="d-flex justify-content-center mb-2">
               <select class="form-select w-50"
@@ -156,10 +153,9 @@
 
 
 
-          </div>
+            </div>
 
-
-
+          <!-- Purchase action area -->
           <div class="card-footer border-0 bg-white text-center">
             <% if (user && user.role === 'admin') { %>
               <div class="text-muted small">Admins cannot add items to the cart.</div>
@@ -190,11 +186,59 @@
 
 </div>
 
+<script>
+  const productGrid = document.querySelector('.row.g-3.justify-content-center');
+  const searchInput = document.getElementById('searchInput');
 
+  async function fetchProducts(query) {
+    const res = await fetch(`/shopping-api?q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error('Failed to fetch products');
+    return res.json();
+  }
 
+  function renderProducts(products) {
+    if (!productGrid) return;
+    if (!products.length) {
+      productGrid.innerHTML = '<div class="col-12 text-center text-muted py-5">No products found.</div>';
+      return;
+    }
 
+    productGrid.innerHTML = products.map(p => {
+      const outOfStock = Number(p.quantity) <= 0;
+      const price = Number(p.price) || 0;
+      return `
+        <div class="col-6 col-md-3">
+          <div class="card product-card">
+            <a class="product-link" href="/product/${p.id}">
+              <div class="product-img-wrapper">
+                <img src="/images/${p.image}" alt="${p.productName}">
+              </div>
+            </a>
+            <div class="card-body text-center">
+              <h6 class="card-title">
+                <a class="product-link" href="/product/${p.id}">
+                  ${p.productName}
+                </a>
+              </h6>
+              <p class="card-text text-primary">$${price.toFixed(2)}</p>
+              <p class="text-secondary small mb-1">
+                ${outOfStock ? '<span class="text-danger fw-semibold">Out of stock</span>' : 'Stock: ' + p.quantity}
+              </p>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
 
-
+  searchInput?.addEventListener('input', async (e) => {
+    try {
+      const data = await fetchProducts(e.target.value);
+      renderProducts(data);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+</script>
 
 <!-- Pagination -->
 
@@ -237,9 +281,7 @@
 
 
 
-
-
-
+<!-- Shopping page styles -->
 <style>
 
   body {

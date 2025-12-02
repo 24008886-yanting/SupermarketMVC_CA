@@ -1,9 +1,10 @@
 const db = require('../db');
 
 const Order = {
-    create: (userId, totalAmount, callback) => {
-        const sql = `INSERT INTO orders (user_id, total_amount, status) VALUES (?, ?, ?)`;
-        db.query(sql, [userId, totalAmount, 'Pending'], (err, result) => {
+    create: (userId, totalAmount, shippingFee, callback) => {
+        const fee = (shippingFee === 0 || shippingFee) ? shippingFee : 0;
+        const sql = `INSERT INTO orders (user_id, total_amount, shipping_fee, status) VALUES (?, ?, ?, ?)`;
+        db.query(sql, [userId, totalAmount, fee, 'Pending'], (err, result) => {
             if (err) return callback(err);
             callback(null, result.insertId);
         });

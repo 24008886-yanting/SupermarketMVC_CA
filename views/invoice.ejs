@@ -80,21 +80,32 @@
                                 <% }) %>
                 </tbody>
                 <tfoot>
+                    <%
+                        const summary = orderSummary || {};
+                        const threshold = typeof shippingThreshold === 'number' ? shippingThreshold : 60;
+                        const baseShipping = typeof shippingBaseFee === 'number' ? shippingBaseFee : 5.9;
+                        const subtotal = typeof summary.subtotal === 'number' ? summary.subtotal : total;
+                        const shippingFee = typeof summary.shippingFee === 'number' ? summary.shippingFee : ((subtotal > 0 && subtotal < threshold) ? baseShipping : 0);
+                        const finalTotal = typeof summary.total === 'number' ? summary.total : subtotal + shippingFee;
+                    %>
                     <tr>
                         <th colspan="3" class="text-end">Subtotal</th>
-                        <th>$<%= total.toFixed(2) %>
+                        <th>$<%= subtotal.toFixed(2) %></th>
+                    </tr>
+                    <tr>
+                        <th colspan="3" class="text-end">Shipping</th>
+                        <th>
+                            <% if (shippingFee === 0) { %>
+                                <span class="text-success">Free</span>
+                            <% } else { %>
+                                $<%= shippingFee.toFixed(2) %>
+                            <% } %>
                         </th>
                     </tr>
-                    <!-- Uncomment if you want tax/total
-                <tr>
-                    <th colspan="3" class="text-end">Tax (7%)</th>
-                    <th>$<%= (total * 0.07).toFixed(2) %></th>
-                </tr>
-                <tr>
-                    <th colspan="3" class="text-end">Total</th>
-                    <th>$<%= (total * 1.07).toFixed(2) %></th>
-                </tr>
-                -->
+                    <tr>
+                        <th colspan="3" class="text-end">Total</th>
+                        <th>$<%= finalTotal.toFixed(2) %></th>
+                    </tr>
                 </tfoot>
             </table>
 

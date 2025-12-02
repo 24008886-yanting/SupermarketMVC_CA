@@ -48,10 +48,29 @@
                             <% }) %>
                     </tbody>
                     <tfoot>
+                        <%
+                            const summary = order.summary || {};
+                            const subtotal = typeof summary.subtotal === 'number' ? summary.subtotal : orderTotal;
+                            const shippingFee = typeof summary.shippingFee === 'number' ? summary.shippingFee : ((subtotal > 0 && subtotal < 60) ? 5.9 : 0);
+                            const finalTotal = typeof summary.total === 'number' ? summary.total : subtotal + shippingFee;
+                        %>
                         <tr>
                             <th colspan="3" class="text-end">Order Subtotal</th>
-                            <th>$<%= orderTotal.toFixed(2) %>
+                            <th>$<%= subtotal.toFixed(2) %></th>
+                        </tr>
+                        <tr>
+                            <th colspan="3" class="text-end">Shipping</th>
+                            <th>
+                                <% if (shippingFee === 0) { %>
+                                    <span class="text-success">Free</span>
+                                <% } else { %>
+                                    $<%= shippingFee.toFixed(2) %>
+                                <% } %>
                             </th>
+                        </tr>
+                        <tr>
+                            <th colspan="3" class="text-end">Order Total</th>
+                            <th>$<%= finalTotal.toFixed(2) %></th>
                         </tr>
                     </tfoot>
                 </table>

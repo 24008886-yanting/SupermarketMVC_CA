@@ -1,3 +1,4 @@
+// Express app setup and route wiring for the supermarket platform
 const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
@@ -119,6 +120,9 @@ app.get('/inventory', checkAuthenticated, checkAuthorised(['admin']), ProductCon
 
 // User shopping list
 app.get('/shopping', checkAuthenticated, ProductController.shopping);
+
+// Live search API
+app.get('/shopping-api', checkAuthenticated, ProductController.shoppingAPI);
 
 
 

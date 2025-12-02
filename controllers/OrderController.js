@@ -3,6 +3,30 @@ const Cart = require('../models/Cart');
 const OrderItemController = require('./OrderItemController'); // handles order items
 const db = require('../db');
 
+const SHIPPING_THRESHOLD = 60;
+const SHIPPING_FEE = 5.9;
+const computeOrderTotals = (items, storedTotal, storedShippingFee) => {
+    const subtotal = (items || []).reduce((sum, item) => {
+        const price = (item.price === 0 || item.price) ? Number(item.price)
+            : (item.captured_price === 0 || item.captured_price) ? Number(item.captured_price)
+            : 0;
+        const qty = Math.max(0, Number(item.quantity) || 0);
+        return sum + (price * qty);
+    }, 0);
+
+    const parsedTotal = parseFloat(storedTotal);
+    const totalFromDb = Number.isNaN(parsedTotal) ? null : parsedTotal;
+    const parsedShipping = parseFloat(storedShippingFee);
+    const shippingFromDb = Number.isNaN(parsedShipping) ? null : parsedShipping;
+    const computedShipping = subtotal > 0 && subtotal < SHIPPING_THRESHOLD ? SHIPPING_FEE : 0;
+    const shippingFee = shippingFromDb !== null 
+        ? shippingFromDb 
+        : (totalFromDb !== null ? Math.max(0, totalFromDb - subtotal) : computedShipping);
+    const total = totalFromDb !== null ? totalFromDb : subtotal + shippingFee;
+
+    return { subtotal, shippingFee, total };
+};
+
 const OrderController = {
 
     // Checkout: create order + order items + update stock + redirect to invoice
@@ -34,10 +58,19 @@ const OrderController = {
                 return res.redirect('/cart');
             }
 
-            let totalAmount = 0;
-            cartItems.forEach(item => totalAmount += Number(item.price) * item.quantity);
+            let subtotal = 0;
+            cartItems.forEach((item) => {
+                const price = (item.price === 0 || item.price) ? Number(item.price) 
+                    : (item.captured_price === 0 || item.captured_price) ? Number(item.captured_price) 
+                    : 0;
+                const qty = Math.max(0, Number(item.quantity) || 0);
+                subtotal += price * qty;
+            });
 
-            Order.create(userId, totalAmount, (err2, orderId) => {
+            const shippingFee = subtotal > 0 && subtotal < SHIPPING_THRESHOLD ? SHIPPING_FEE : 0;
+            const totalAmount = subtotal + shippingFee;
+
+            Order.create(userId, totalAmount, shippingFee, (err2, orderId) => {
                 if (err2) return res.status(500).send("Failed to create order");
 
                 const insertItem = (index) => {
@@ -47,12 +80,18 @@ const OrderController = {
                     }
 
                     const item = cartItems[index];
-                    OrderItemController.create(orderId, item, (err3) => {
+                    const priceToCharge = (item.price === 0 || item.price) ? Number(item.price)
+                        : (item.captured_price === 0 || item.captured_price) ? Number(item.captured_price)
+                        : 0;
+                    const quantityToCharge = Math.max(0, Number(item.quantity) || 0);
+                    const orderItemPayload = { ...item, price: priceToCharge, quantity: quantityToCharge };
+
+                    OrderItemController.create(orderId, orderItemPayload, (err3) => {
                         if (err3) return res.status(500).send("Failed to insert order item");
 
                         db.query(
                             `UPDATE products SET quantity = quantity - ? WHERE id = ?`, 
-                            [item.quantity, item.product_id], 
+                            [quantityToCharge, item.product_id], 
                             (err4) => {
                                 if (err4) return res.status(500).send("Failed to update product stock");
                                 insertItem(index + 1);
@@ -81,7 +120,10 @@ const OrderController = {
                     title: 'Invoice',       // page title
                     user: req.session.user, // for navbar/footer
                     order, 
-                    items 
+                    items,
+                    orderSummary: computeOrderTotals(items, order.total_amount, order.shipping_fee),
+                    shippingThreshold: SHIPPING_THRESHOLD,
+                    shippingBaseFee: SHIPPING_FEE
                 });
             });
         });
@@ -106,6 +148,7 @@ const OrderController = {
                 OrderItemController.getItemsByOrderId(order.order_id, (err2, items) => {
                     if (err2) return res.status(500).send('Failed to fetch order items');
                     order.items = items;
+                    order.summary = computeOrderTotals(items, order.total_amount, order.shipping_fee);
                     completed++;
                     if (completed === orders.length) {
                         res.render('purchases', { 
@@ -139,6 +182,7 @@ const OrderController = {
                 OrderItemController.getItemsByOrderId(order.order_id, (err2, items) => {
                     if (err2) return res.status(500).send('Failed to fetch order items');
                     order.items = items || [];
+                    order.summary = computeOrderTotals(order.items, order.total_amount, order.shipping_fee);
                     completed++;
                     if (completed === orders.length) {
                         res.render('orderDashboard', { 

@@ -61,6 +61,18 @@ const ProductController = {
         });
     },
 
+    // Live search API for client-side filtering without reload
+    shoppingAPI: (req, res) => {
+        const q = (req.query.q || '').toLowerCase();
+        Product.getAll((err, allProducts) => {
+            if (err) return res.status(500).json({ error: 'Error fetching products.' });
+            const filtered = allProducts.filter(p =>
+                (p.productName || '').toLowerCase().includes(q)
+            );
+            res.json(filtered);
+        });
+    },
+
     // User search view
     search: (req, res) => {
         const searchQuery = req.query.q ? req.query.q.toLowerCase() : '';
