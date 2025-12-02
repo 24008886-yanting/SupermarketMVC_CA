@@ -71,6 +71,18 @@
             >
           </div>
 
+
+          <div class="mb-3">
+            <label class="form-label" for="currentPassword">Current Password</label>
+            <input
+              type="password"
+              id="currentPassword"
+              name="currentPassword"
+              class="form-control"
+              placeholder="Required if setting a new password"
+            >
+          </div>
+
           <div class="mb-3">
             <label class="form-label" for="password">New Password</label>
             <input
@@ -80,7 +92,9 @@
               class="form-control"
               placeholder="Leave blank to keep current password"
             >
+            <div class="form-text">At least 10 characters with letters, numbers, and symbols.</div>
           </div>
+
 
           <div class="mb-4">
             <label class="form-label" for="confirmPassword">Confirm New Password</label>

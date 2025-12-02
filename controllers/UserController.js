@@ -193,8 +193,8 @@ const UserController = {
                 layout: 'layout',
                 title: 'Profile',
                 userData: user,
-                errors: req.flash('error') || [],
-                messages: req.flash('success') || []
+                errors: res.locals.error || [],
+                messages: res.locals.success || []
             });
 
         });
@@ -212,8 +212,9 @@ const UserController = {
         }
 
 
-        const { username, address, contact, password, confirmPassword } = req.body;
+        const { username, address, contact, password = '', confirmPassword = '', currentPassword = '' } = req.body;
         const errors = [];
+        const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/;
 
 
         if (!username || !address || !contact) {
@@ -222,8 +223,20 @@ const UserController = {
 
 
 
-        if (password && password !== confirmPassword) {
-            errors.push('Passwords do not match.');
+        const trimmedPassword = password.trim();
+        const trimmedConfirm = confirmPassword.trim();
+        const trimmedCurrentPassword = currentPassword.trim();
+
+        // Only validate strength if user is trying to change password
+        if (trimmedPassword || trimmedConfirm) {
+            if (!trimmedCurrentPassword) {
+                errors.push('Current password is required to set a new password.');
+            }
+            if (trimmedPassword !== trimmedConfirm) {
+                errors.push('Passwords do not match.');
+            } else if (!passwordPattern.test(trimmedPassword)) {
+                errors.push('Password must be at least 10 characters and include letters, numbers, and symbols.');
+            }
         }
 
 
@@ -258,39 +271,58 @@ const UserController = {
 
 
 
-        User.updateProfile(userId, { username, address, contact, password }, (err, updated) => {
-            if (err || !updated) {
-                req.flash('error', 'Failed to update profile.');
-                return res.redirect('/profile');
-            }
-
-
-
-            User.findById(userId, (findErr, updatedUser) => {
-                if (findErr || !updatedUser) {
-                    req.flash('error', 'Profile updated but could not reload data.');
+        const performUpdate = () => {
+            User.updateProfile(userId, { username, address, contact, password: trimmedPassword }, (err, updated) => {
+                if (err || !updated) {
+                    req.flash('error', 'Failed to update profile.');
                     return res.redirect('/profile');
                 }
 
 
 
-                req.session.user = {
-                    user_id: updatedUser.id,
-                    username: updatedUser.username,
-                    email: updatedUser.email,
-                    role: updatedUser.role
-                };
+                User.findById(userId, (findErr, updatedUser) => {
+                    if (findErr || !updatedUser) {
+                        req.flash('error', 'Profile updated but could not reload data.');
+                        return res.redirect('/profile');
+                    }
 
 
 
-                req.session.save(() => {
-                    req.flash('success', 'Profile updated successfully.');
-                    return res.redirect('/profile');
+                    req.session.user = {
+                        user_id: updatedUser.id,
+                        username: updatedUser.username,
+                        email: updatedUser.email,
+                        role: updatedUser.role
+                    };
+
+
+
+                    req.session.save(() => {
+                        req.flash('success', 'Profile updated successfully.');
+                        return res.redirect('/profile');
+                    });
+
                 });
 
             });
+        };
 
-        });
+        // If user is changing password, verify current password first
+        if (trimmedPassword) {
+            return User.verifyPassword(userId, trimmedCurrentPassword, (err, isValid) => {
+                if (err) {
+                    req.flash('error', 'Unable to verify current password.');
+                    return res.redirect('/profile');
+                }
+                if (!isValid) {
+                    req.flash('error', 'Current password is incorrect.');
+                    return res.redirect('/profile');
+                }
+                return performUpdate();
+            });
+        }
+
+        return performUpdate();
 
     }
 

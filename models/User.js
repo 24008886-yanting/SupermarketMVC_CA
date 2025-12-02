@@ -61,6 +61,19 @@ const User = {
         });
     },
 
+    // Verify a user's password by ID
+    verifyPassword: (id, password, callback) => {
+        const sql = 'SELECT password FROM users WHERE id = ?';
+        db.query(sql, [id], (err, results) => {
+            if (err) return callback(err, null);
+            if (results.length === 0) return callback(null, false);
+
+            const storedHash = results[0].password;
+            const hashedInput = crypto.createHash('sha1').update(password).digest('hex');
+            callback(null, hashedInput === storedHash);
+        });
+    },
+
     // Update user profile (password optional)
     updateProfile: (id, { username, address, contact, password }, callback) => {
         const values = [username, address, contact];
