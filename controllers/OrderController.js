@@ -138,10 +138,14 @@ const OrderController = {
         });
     },
 
-    // Show purchase history
+    // Show purchase history (normal users only)
     history: (req, res) => {
         const user = req.session.user;
         if (!user) return res.redirect('/login');
+        if (user.role === 'admin') {
+            req.flash('error', 'Admins do not have a personal purchase history.');
+            return res.redirect('/order-dashboard');
+        }
 
         Order.getByUserId(user.user_id, (err, orders) => {
             if (err) return res.status(500).send('Failed to fetch order history');

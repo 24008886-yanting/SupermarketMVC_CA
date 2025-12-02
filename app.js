@@ -212,7 +212,6 @@ app.post('/cart/checkout', checkAuthenticated, OrderController.checkout);
 
 // -------- ORDER ROUTES -------- //
 app.get('/invoice/:orderId',checkAuthenticated, OrderController.showInvoice);
-app.get('/order-history',checkAuthenticated, OrderController.history);
 app.get('/order-dashboard', checkAuthenticated, checkAuthorised(['admin']), OrderController.adminDashboard);
 
 
