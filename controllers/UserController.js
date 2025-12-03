@@ -1,5 +1,25 @@
 const User = require('../models/User');
 
+const validateRegistrationFields = ({ username, email, password, address, contact }) => {
+    const errors = [];
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/;
+
+    if (!username || !email || !password || !address || !contact) {
+        errors.push('Please fill all required fields.');
+    }
+
+    if (email && !emailPattern.test(email)) {
+        errors.push('Please use a valid email (format: name@example.xx).');
+    }
+
+    if (password && !passwordPattern.test(password)) {
+        errors.push('Password must be at least 10 characters and include letters, numbers, and symbols.');
+    }
+
+    return errors;
+};
+
 const UserController = {
 
     // Render registration form
@@ -16,26 +36,10 @@ const UserController = {
 
     // Register new user
     register: (req, res) => {
-        const { username, email, password, address, contact, role } = req.body;
-        const userRole = role || 'user';
+        const { username, email, password, address, contact } = req.body;
+        const userRole = 'user'; // enforce user role on server
 
-        const errors = [];
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/;
-
-        if (!username || !email || !password || !address || !contact) {
-            errors.push('Please fill all required fields.');
-        }
-
-        if (email && !emailPattern.test(email)) {
-            errors.push('Please use a valid email (format: name@example.xx).');
-        }
-
-        if (password && !passwordPattern.test(password)) {
-            errors.push('Password must be at least 10 characters and include letters, numbers, and symbols.');
-        }
-
-
+        const errors = validateRegistrationFields({ username, email, password, address, contact });
 
         if (errors.length > 0) {
             return res.render('register', {
@@ -88,6 +92,67 @@ const UserController = {
 
         });
 
+    },
+    // Render admin creation form (admin-only)
+    showAdminRegistrationForm: (req, res) => {
+        res.render('manageAdmin', {
+            layout: 'layout',
+            title: 'Manage Admin',
+            messages: [],
+            formData: {}
+        });
+    },
+
+    // Create a new admin (admin-only)
+    createAdmin: (req, res) => {
+        const { username, email, password, address, contact } = req.body;
+        const adminRole = 'admin';
+        const errors = validateRegistrationFields({ username, email, password, address, contact });
+
+        if (errors.length > 0) {
+            return res.render('manageAdmin', {
+                layout: 'layout',
+                title: 'Manage Admin',
+                messages: errors,
+                formData: { username, email, address, contact }
+            });
+        }
+
+        User.findByEmail(email, (findErr, existingUser) => {
+
+            if (findErr) {
+                return res.render('manageAdmin', {
+                    layout: 'layout',
+                    title: 'Manage Admin',
+                    messages: ['Registration failed. Please try again.'],
+                    formData: { username, email, address, contact }
+                });
+            }
+
+            if (existingUser) {
+                return res.render('manageAdmin', {
+                    layout: 'layout',
+                    title: 'Manage Admin',
+                    messages: ['This email is already registered. Please use a different email.'],
+                    formData: { username, email, address, contact }
+                });
+            }
+
+            User.register({ username, email, password, address, contact, role: adminRole }, (err, newUser) => {
+
+                if (err) {
+                    return res.render('manageAdmin', {
+                        layout: 'layout',
+                        title: 'Manage Admin',
+                        messages: ['Registration failed. Please try again.'],
+                        formData: { username, email, address, contact }
+                    });
+                }
+
+                req.flash('success', 'Admin account created successfully.');
+                res.redirect('/admin/manage-admin');
+            });
+        });
     },
 
 

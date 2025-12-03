@@ -1,9 +1,9 @@
-﻿<div class="container my-5">
+<div class="container my-5">
   <div class="row justify-content-center">
     <div class="col-12 col-md-8 col-lg-6">
       <div class="card shadow-sm">
         <div class="card-body">
-          <h3 class="card-title mb-3">Register</h3>
+          <h3 class="card-title mb-3">Create Admin Account</h3>
 
           <% const flashSuccess = (locals && locals.success) || []; %>
           <% const flashError = (messages && messages.length) ? messages : (locals && locals.error) || []; %>
@@ -24,7 +24,7 @@
             </div>
           <% } %>
 
-          <form action="/register" method="POST" class="needs-validation" novalidate>
+          <form action="/admin/manage-admin" method="POST" class="needs-validation" novalidate>
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
               <input type="text" id="username" name="username" class="form-control" required value="<%= formData && formData.username ? formData.username : '' %>">
@@ -45,15 +45,8 @@
               <label for="contact" class="form-label">Contact Number</label>
               <input type="text" id="contact" name="contact" class="form-control" required value="<%= formData && formData.contact ? formData.contact : '' %>">
             </div>
-            <div class="mb-3">
-              <label for="role" class="form-label">Role</label>
-              <select id="role" class="form-control" disabled>
-                <option value="user" selected>User</option>
-              </select>
-              <input type="hidden" name="role" value="user">
-            </div>
             <div class="d-flex justify-content-end">
-              <button type="submit" class="btn btn-primary">Register</button>
+              <button type="submit" class="btn btn-primary">Create Admin</button>
             </div>
           </form>
         </div>

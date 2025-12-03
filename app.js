@@ -116,6 +116,10 @@ app.post('/profile', checkAuthenticated, UserController.updateProfile);
 // Admin inventory
 app.get('/inventory', checkAuthenticated, checkAuthorised(['admin']), ProductController.list);
 
+// Admin management
+app.get('/admin/manage-admin', checkAuthenticated, checkAuthorised(['admin']), UserController.showAdminRegistrationForm);
+app.post('/admin/manage-admin', checkAuthenticated, checkAuthorised(['admin']), UserController.createAdmin);
+
 
 
 // User shopping list

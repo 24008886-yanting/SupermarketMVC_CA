@@ -2,8 +2,10 @@ const db = require('../db');
 const crypto = require('crypto');
 
 const User = {
-    // Register new user (optional: hash with SHA-1 if registering new)
+    // Register new user
     register: ({ username, email, password, address, contact, role }, callback) => {
+        const allowedRoles = ['user', 'admin']; // whitelist roles; defaults to user
+        const sanitizedRole = allowedRoles.includes(role) ? role : 'user';
         const normalizedEmail = email.trim().toLowerCase();
         const hashedPassword = crypto.createHash('sha1').update(password).digest('hex');
 
@@ -13,9 +15,9 @@ const User = {
             if (rows.length) return callback(new Error('EMAIL_EXISTS'), null);
 
             const sql = 'INSERT INTO users (username, email, password, address, contact, role) VALUES (?, ?, ?, ?, ?, ?)';
-            db.query(sql, [username, normalizedEmail, hashedPassword, address, contact, role], (err, result) => {
+            db.query(sql, [username, normalizedEmail, hashedPassword, address, contact, sanitizedRole], (err, result) => {
                 if (err) return callback(err, null);
-                callback(null, { user_id: result.insertId, username, email: normalizedEmail, address, contact, role });
+                callback(null, { user_id: result.insertId, username, email: normalizedEmail, address, contact, role: sanitizedRole });
             });
         });
     },
