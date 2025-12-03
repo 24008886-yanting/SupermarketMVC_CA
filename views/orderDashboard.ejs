@@ -1,85 +1,127 @@
 <div class="container my-5">
     <h2 class="mb-4">Order Dashboard</h2>
 
+    <form class="row g-3 align-items-end mb-4" method="get" action="/order-dashboard">
+        <div class="col-12 col-md-4">
+            <label class="form-label text-muted text-uppercase small fw-semibold">Start date</label>
+            <input type="date" name="startDate" class="form-control" value="<%= startDate || '' %>">
+        </div>
+        <div class="col-12 col-md-4">
+            <label class="form-label text-muted text-uppercase small fw-semibold">End date</label>
+            <input type="date" name="endDate" class="form-control" value="<%= endDate || '' %>">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </div>
+        <div class="col-auto">
+            <a class="btn btn-outline-secondary" href="/order-dashboard">Clear</a>
+        </div>
+    </form>
+
+    <% if (startDate || endDate) { %>
+        <div class="alert alert-info py-2">
+            Showing orders
+            <% if (startDate) { %> from <%= startDate %> <% } %>
+            <% if (endDate) { %> to <%= endDate %> <% } %>
+        </div>
+    <% } %>
+
     <% if (orders && orders.length > 0) { %>
-        <% orders.forEach(order => { %>
-            <div class="order-box p-3 mb-4 border rounded bg-light">
-                <div class="order-header d-flex justify-content-between mb-2">
+        <% orders.forEach(order => {
+            const items = order.items || [];
+            const derivedSubtotal = items.reduce((sum, item) => {
+                const price = parseFloat(item.price) || 0;
+                const qty = parseInt(item.quantity) || 0;
+                return sum + price * qty;
+            }, 0);
+            const summary = order.summary || {};
+            const storedTotal = !isNaN(parseFloat(order.total_amount)) ? parseFloat(order.total_amount) : derivedSubtotal;
+            const subtotal = typeof summary.subtotal === 'number' ? summary.subtotal : derivedSubtotal;
+            const shippingFee = typeof summary.shippingFee === 'number' ? summary.shippingFee : Math.max(0, storedTotal - subtotal);
+            const grandTotal = typeof summary.total === 'number' ? summary.total : subtotal + shippingFee;
+        %>
+            <details class="order-box p-3 mb-4 border rounded bg-light">
+                <summary class="order-summary d-flex justify-content-between align-items-center">
                     <div>
-                        <strong>Order ID:</strong> <%= order.order_id %><br>
-                        <strong>Date:</strong> <%= new Date(order.created_at).toLocaleString() %>
+                        <div class="fw-semibold">Order ID: <%= order.order_id %></div>
+                        <div class="text-muted small">Date: <%= new Date(order.created_at).toLocaleString() %></div>
+                        <div class="text-muted small">User: <%= order.email %></div>
                     </div>
                     <div class="text-end">
-                        <strong>User Email:</strong> <%= order.email %><br>
-                        <strong>Status:</strong> <%= order.status %>
+                        <div class="fw-semibold">Status: <%= order.status %></div>
+                        <div class="fw-semibold">Order Total: $<%= grandTotal.toFixed(2) %></div>
                     </div>
-                </div>
+                </summary>
 
-                <div class="mb-2">
-                    <strong>Customer:</strong> <%= order.username %><br>
-                    <strong>Address:</strong> <%= order.address || 'N/A' %>
-                </div>
+                <div class="order-details pt-3">
+                    <div class="mb-3 d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>Customer:</strong> <%= order.username %><br>
+                            <strong>Address:</strong> <%= order.address || 'N/A' %>
+                        </div>
+                        <div class="text-end">
+                            <strong>Shipping:</strong>
+                            <% if (shippingFee === 0) { %>
+                                <span class="text-success">Free</span>
+                            <% } else { %>
+                                $<%= shippingFee.toFixed(2) %>
+                            <% } %><br>
+                            <strong>Subtotal:</strong> $<%= subtotal.toFixed(2) %>
+                        </div>
+                    </div>
 
-                <table class="table table-bordered">
-                    <thead class="table-secondary">
-                        <tr>
-                            <th>Product</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% let orderTotal = 0; %>
-                        <% if (order.items && order.items.length) { %>
-                            <% order.items.forEach(item => {
-                                const price = parseFloat(item.price) || 0;
-                                const qty = parseInt(item.quantity) || 0;
-                                const subtotal = price * qty;
-                                orderTotal += subtotal;
-                            %>
-                                <tr>
-                                    <td><%= item.product_name %></td>
-                                    <td><%= qty %></td>
-                                    <td>$<%= price.toFixed(2) %></td>
-                                    <td>$<%= subtotal.toFixed(2) %></td>
-                                </tr>
-                            <% }) %>
-                        <% } else { %>
+                    <table class="table table-bordered">
+                        <thead class="table-secondary">
                             <tr>
-                                <td colspan="4" class="text-center text-muted">No items found for this order.</td>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Subtotal</th>
                             </tr>
-                        <% } %>
-                    </tbody>
-                    <tfoot>
-                        <%
-                            const summary = order.summary || {};
-                            const storedTotal = !isNaN(parseFloat(order.total_amount)) ? parseFloat(order.total_amount) : orderTotal;
-                            const subtotal = typeof summary.subtotal === 'number' ? summary.subtotal : orderTotal;
-                            const shippingFee = typeof summary.shippingFee === 'number' ? summary.shippingFee : Math.max(0, storedTotal - subtotal);
-                            const grandTotal = typeof summary.total === 'number' ? summary.total : subtotal + shippingFee;
-                        %>
-                        <tr>
-                            <th colspan="3" class="text-end">Order Subtotal</th>
-                            <th>$<%= subtotal.toFixed(2) %></th>
-                        </tr>
-                        <tr>
-                            <th colspan="3" class="text-end">Shipping</th>
-                            <th>
-                                <% if (shippingFee === 0) { %>
-                                    <span class="text-success">Free</span>
-                                <% } else { %>
-                                    $<%= shippingFee.toFixed(2) %>
-                                <% } %>
-                            </th>
-                        </tr>
-                        <tr>
-                            <th colspan="3" class="text-end">Order Total</th>
-                            <th>$<%= grandTotal.toFixed(2) %></th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            <% if (items && items.length) { %>
+                                <% items.forEach(item => {
+                                    const price = parseFloat(item.price) || 0;
+                                    const qty = parseInt(item.quantity) || 0;
+                                    const lineTotal = price * qty;
+                                %>
+                                    <tr>
+                                        <td><%= item.product_name %></td>
+                                        <td><%= qty %></td>
+                                        <td>$<%= price.toFixed(2) %></td>
+                                        <td>$<%= lineTotal.toFixed(2) %></td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No items found for this order.</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Order Subtotal</th>
+                                <th>$<%= subtotal.toFixed(2) %></th>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end">Shipping</th>
+                                <th>
+                                    <% if (shippingFee === 0) { %>
+                                        <span class="text-success">Free</span>
+                                    <% } else { %>
+                                        $<%= shippingFee.toFixed(2) %>
+                                    <% } %>
+                                </th>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end">Order Total</th>
+                                <th>$<%= grandTotal.toFixed(2) %></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </details>
         <% }) %>
     <% } else { %>
         <p>No orders have been placed yet.</p>
@@ -92,7 +134,29 @@
         border-radius: 10px;
     }
 
-    .order-header {
-        margin-bottom: 10px;
+    .order-summary {
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+    }
+
+    .order-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .order-summary::after {
+        content: '>';
+        margin-left: 10px;
+        font-size: 1.1rem;
+        transition: transform 0.2s ease;
+    }
+
+    details[open] .order-summary::after {
+        transform: rotate(90deg);
+    }
+
+    .order-details {
+        border-top: 1px solid #dee2e6;
+        margin-top: 10px;
     }
 </style>

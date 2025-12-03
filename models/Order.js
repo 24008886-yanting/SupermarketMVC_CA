@@ -26,8 +26,27 @@ const Order = {
         });
     },
 
-    getAllWithUsers: (callback) => {
-        const sql = `
+    getAllWithUsers: (filters, callback) => {
+        // Allow calling with only a callback
+        if (typeof filters === 'function') {
+            callback = filters;
+            filters = {};
+        }
+
+        const { startDate, endDate } = filters || {};
+        const clauses = [];
+        const params = [];
+
+        if (startDate) {
+            clauses.push(`DATE(o.created_at) >= ?`);
+            params.push(startDate);
+        }
+        if (endDate) {
+            clauses.push(`DATE(o.created_at) <= ?`);
+            params.push(endDate);
+        }
+
+        let sql = `
             SELECT 
                 o.*, 
                 u.email, 
@@ -35,9 +54,15 @@ const Order = {
                 u.username
             FROM orders o
             JOIN users u ON o.user_id = u.id
-            ORDER BY o.created_at DESC
         `;
-        db.query(sql, (err, results) => {
+
+        if (clauses.length) {
+            sql += ` WHERE ` + clauses.join(' AND ');
+        }
+
+        sql += ` ORDER BY o.created_at DESC`;
+
+        db.query(sql, params, (err, results) => {
             if (err) return callback(err);
             callback(null, results);
         });

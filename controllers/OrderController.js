@@ -178,7 +178,14 @@ const OrderController = {
 
     // Admin dashboard to view all orders
     adminDashboard: (req, res) => {
-        Order.getAllWithUsers((err, orders) => {
+        let { startDate, endDate } = req.query || {};
+
+        // Swap if dates are inverted to keep the range valid
+        if (startDate && endDate && startDate > endDate) {
+            [startDate, endDate] = [endDate, startDate];
+        }
+
+        Order.getAllWithUsers({ startDate, endDate }, (err, orders) => {
             if (err) return res.status(500).send('Failed to fetch orders');
 
             if (!orders.length) {
@@ -186,7 +193,9 @@ const OrderController = {
                     layout: 'layout',
                     title: 'Order Dashboard',
                     user: req.session.user,
-                    orders: [] 
+                    orders: [],
+                    startDate,
+                    endDate 
                 });
             }
 
@@ -202,7 +211,9 @@ const OrderController = {
                             layout: 'layout',
                             title: 'Order Dashboard',
                             user: req.session.user,
-                            orders 
+                            orders,
+                            startDate,
+                            endDate 
                         });
                     }
                 });
@@ -213,5 +224,4 @@ const OrderController = {
 };
 
 module.exports = OrderController;
-
 

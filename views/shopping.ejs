@@ -58,20 +58,40 @@
 <h2 class="text-center my-5 text-danger">Our Products</h2>
 
 <!-- Search form with query and optional category filter -->
-<div class="container mb-4">
-  <form class="row g-2 justify-content-center" action="/shopping" method="get">
-    <div class="col-10 col-md-6 col-lg-5">
-      <input type="text" class="form-control" id="searchInput" name="q" placeholder="Search products..."
-        value="<%= searchQuery || '' %>">
+<div class="container mb-5">
+  <div class="search-panel">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div>
+        <div class="search-eyebrow text-uppercase fw-semibold">Search products</div>
+      </div>
     </div>
-    <% if (selectedCategory) { %>
-      <input type="hidden" name="category" value="<%= selectedCategory %>">
-    <% } %>
-    <div class="col-auto">
-      <button type="submit" class="btn btn-primary px-4">Search</button>
-    </div>
+
+    <form class="search-form" action="/shopping" method="get">
+      <div class="search-input-wrap">
+        <span class="search-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+          </svg>
+        </span>
+        <input type="text" class="form-control search-input" id="searchInput" name="q"
+          placeholder="Search for fresh produce, snacks, drinks..."
+          value="<%= searchQuery || '' %>">
+      </div>
+      <% if (selectedCategory) { %>
+        <input type="hidden" name="category" value="<%= selectedCategory %>">
+      <% } %>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="btn btn-primary search-btn">Search</button>
+        <% if (searchQuery || selectedCategory) { %>
+          <a class="btn btn-outline-secondary search-btn" href="/shopping">Clear</a>
+        <% } %>
+      </div>
+    </form>
+
     <% if (searchQuery || selectedCategory) { %>
-      <div class="col-12 text-center text-muted small">
+      <div class="mt-2 text-muted small">
         Showing <%= totalProducts %> product<%= totalProducts === 1 ? '' : 's' %>
         <% if (searchQuery) { %>
           for "<%= searchQuery %>"
@@ -79,10 +99,9 @@
         <% if (selectedCategory) { %>
           in category "<%= selectedCategory %>"
         <% } %>
-        <a class="ms-2" href="/shopping">Clear</a>
       </div>
     <% } %>
-  </form>
+  </div>
 </div>
 
 
@@ -400,6 +419,73 @@
   .btn {
     font-size: 15px;
     padding: 4px 12px;
+  }
+
+  /* Search bar styling */
+  .search-panel {
+    background: linear-gradient(135deg, #e8f1ff 0%, #fdf1f1 100%);
+    border: 1px solid #e5e9f2;
+    border-radius: 18px;
+    padding: 18px 20px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  }
+
+  .search-eyebrow {
+    letter-spacing: 1px;
+    font-size: 11px;
+    color: #6c757d;
+  }
+
+  .search-chip {
+    background: #0d6efd;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    box-shadow: 0 10px 20px rgba(13, 110, 253, 0.2);
+  }
+
+  .search-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+    align-items: center;
+  }
+
+  .search-input-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .search-icon {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    color: #6c757d;
+    pointer-events: none;
+  }
+
+  .search-input {
+    padding-left: 42px;
+    height: 48px;
+    border-radius: 12px;
+    border: 1px solid #d6d9e0;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 22px rgba(13, 110, 253, 0.08);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .search-input:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 10px 30px rgba(13, 110, 253, 0.2);
+  }
+
+  .search-btn {
+    height: 48px;
+    border-radius: 12px;
+    padding: 0 18px;
   }
 
 </style>
