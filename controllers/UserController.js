@@ -206,6 +206,8 @@ const UserController = {
 
             console.log('Session set:', req.session.user);
 
+            req.flash('success', `Welcome, ${user.username}!`);
+
             req.session.save(err => {
                 if (err) return res.send("Error saving session");
                 res.redirect('/shopping');
