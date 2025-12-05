@@ -1,22 +1,52 @@
 <div class="container my-5">
-    <h2 class="mb-4">Order Dashboard</h2>
-
-    <form class="row g-3 align-items-end mb-4" method="get" action="/order-dashboard">
-        <div class="col-12 col-md-4">
-            <label class="form-label text-muted text-uppercase small fw-semibold">Start date</label>
-            <input type="date" name="startDate" class="form-control" value="<%= startDate || '' %>">
+    <div class="d-flex flex-column align-items-start gap-3 mb-4">
+        <h2 class="mb-0">Order Dashboard</h2>
+        <div class="monthly-stats">
+            <div class="stats-heading">
+                <span>Month snapshot</span>
+                <span class="text-muted small"><%= monthlyLabel || '' %></span>
+            </div>
+            <div class="stats-body d-flex flex-wrap align-items-start gap-4">
+                <div class="d-flex flex-wrap align-items-start gap-4">
+                    <div class="stat-line d-flex flex-column">
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-value">$<%= (monthlyStats && typeof monthlyStats.totalRevenue === 'number' ? monthlyStats.totalRevenue : 0).toFixed(2) %></div>
+                    </div>
+                    <div class="stat-line d-flex flex-column">
+                        <div class="stat-label">Total Orders</div>
+                        <div class="stat-value"><%= (monthlyStats && typeof monthlyStats.totalOrders === 'number' ? monthlyStats.totalOrders : 0) %></div>
+                    </div>
+                </div>
+                <div class="best-sellers">
+                    <div class="stat-label mb-1">Best selling products</div>
+                    <% if (monthlyBestSellers && monthlyBestSellers.length) { %>
+                        <ul class="best-list mb-0">
+                            <% monthlyBestSellers.forEach((item) => { %>
+                                <li>
+                                    <span class="best-name"><%= item.product_name || 'Product' %></span>
+                                    <span class="best-qty"><%= item.total_quantity || 0 %> sold</span>
+                                </li>
+                            <% }) %>
+                        </ul>
+                    <% } else { %>
+                        <div class="text-muted small">No sales yet.</div>
+                    <% } %>
+                </div>
+            </div>
+            <form class="filter-inline d-flex flex-wrap align-items-end gap-2" method="get" action="/order-dashboard">
+                <div class="date-field">
+                    <label class="form-label text-muted text-uppercase small fw-semibold" for="startDate">Start date</label>
+                    <input type="date" id="startDate" name="startDate" class="form-control form-control-sm" value="<%= startDate || '' %>">
+                </div>
+                <div class="date-field">
+                    <label class="form-label text-muted text-uppercase small fw-semibold" for="endDate">End date</label>
+                    <input type="date" id="endDate" name="endDate" class="form-control form-control-sm" value="<%= endDate || '' %>">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                <a class="btn btn-outline-secondary btn-sm" href="/order-dashboard">Clear</a>
+            </form>
         </div>
-        <div class="col-12 col-md-4">
-            <label class="form-label text-muted text-uppercase small fw-semibold">End date</label>
-            <input type="date" name="endDate" class="form-control" value="<%= endDate || '' %>">
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Filter</button>
-        </div>
-        <div class="col-auto">
-            <a class="btn btn-outline-secondary" href="/order-dashboard">Clear</a>
-        </div>
-    </form>
+    </div>
 
     <% if (startDate || endDate) { %>
         <div class="alert alert-info py-2">
@@ -158,5 +188,87 @@
     .order-details {
         border-top: 1px solid #dee2e6;
         margin-top: 10px;
+    }
+
+    .monthly-stats {
+        background: #e8f5e9;
+        border: 1px solid #99d3a6;
+        border-radius: 12px;
+        padding: 12px 14px;
+        min-width: 280px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .stats-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #2e7d32;
+        font-weight: 600;
+    }
+
+    .stat-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1b5e20;
+    }
+
+    .best-sellers {
+        min-width: 220px;
+    }
+
+    .best-list {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 0;
+    }
+
+    .best-list li {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 4px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .best-list li:last-child {
+        border-bottom: none;
+    }
+
+    .best-name {
+        font-weight: 600;
+        color: #1b5e20;
+    }
+
+    .best-qty {
+        font-size: 0.9rem;
+        color: #2e7d32;
+        font-weight: 600;
+    }
+
+    .filter-inline {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .filter-form .form-label {
+        margin-bottom: 4px;
+    }
+
+    .filter-form .form-control-sm {
+        min-width: 160px;
+    }
+
+    .date-field {
+        display: flex;
+        flex-direction: column;
     }
 </style>

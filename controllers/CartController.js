@@ -38,7 +38,7 @@ const CartController = {
                         const details = adjustList.map(a => 
                             `The quantity of ${a.name} in your cart was reduced from ${a.prevQty} to ${a.newQty} because only ${a.currentStock} is available now. Please review and update the quantity if you want to buy fewer than ${a.newQty}.`
                         );
-                        details.forEach(msg => req.flash('success', msg));
+                        details.forEach(msg => req.flash('error', msg));
                         return res.redirect('/cart');
                     }
                     const adj = adjustList[idx];

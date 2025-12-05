@@ -66,6 +66,46 @@ const Order = {
             if (err) return callback(err);
             callback(null, results);
         });
+    },
+
+    getMonthlyStats: (startDate, endDate, callback) => {
+        const sql = `
+            SELECT 
+                COALESCE(SUM(total_amount), 0) AS total_revenue,
+                COUNT(*) AS total_orders
+            FROM orders
+            WHERE DATE(created_at) BETWEEN ? AND ?
+        `;
+
+        db.query(sql, [startDate, endDate], (err, results) => {
+            if (err) return callback(err);
+            const row = results && results[0] ? results[0] : {};
+            callback(null, {
+                totalRevenue: Number(row.total_revenue) || 0,
+                totalOrders: Number(row.total_orders) || 0
+            });
+        });
+    },
+
+    getMonthlyBestSellers: (startDate, endDate, limit = 3, callback) => {
+        const sql = `
+            SELECT 
+                oi.product_id,
+                oi.product_name,
+                SUM(oi.quantity) AS total_quantity,
+                SUM(oi.subtotal) AS total_revenue
+            FROM order_items oi
+            JOIN orders o ON o.order_id = oi.order_id
+            WHERE DATE(o.created_at) BETWEEN ? AND ?
+            GROUP BY oi.product_id, oi.product_name
+            ORDER BY total_quantity DESC, total_revenue DESC
+            LIMIT ?
+        `;
+
+        db.query(sql, [startDate, endDate, limit], (err, results) => {
+            if (err) return callback(err);
+            callback(null, results || []);
+        });
     }
 };
 

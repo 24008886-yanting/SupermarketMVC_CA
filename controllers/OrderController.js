@@ -5,6 +5,19 @@ const db = require('../db');
 
 const SHIPPING_THRESHOLD = 60;
 const SHIPPING_FEE = 5.9;
+const formatDateForSQL = (date) => date.toISOString().slice(0, 10);
+const getMonthRange = () => {
+    const now = new Date();
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+
+    return {
+        startDate: formatDateForSQL(start),
+        endDate: formatDateForSQL(end),
+        label: new Date(start).toLocaleString('en-US', { month: 'long', year: 'numeric' })
+    };
+};
+
 const computeOrderTotals = (items, storedTotal, storedShippingFee) => {
     const subtotal = (items || []).reduce((sum, item) => {
         const price = (item.price === 0 || item.price) ? Number(item.price)
@@ -196,37 +209,45 @@ const OrderController = {
             [startDate, endDate] = [endDate, startDate];
         }
 
-        Order.getAllWithUsers({ startDate, endDate }, (err, orders) => {
-            if (err) return res.status(500).send('Failed to fetch orders');
+        const { startDate: monthStart, endDate: monthEnd, label: monthLabel } = getMonthRange();
 
-            if (!orders.length) {
-                return res.render('orderDashboard', { 
-                    layout: 'layout',
-                    title: 'Order Dashboard',
-                    user: req.session.user,
-                    orders: [],
-                    startDate,
-                    endDate 
-                });
-            }
+        Order.getMonthlyStats(monthStart, monthEnd, (statsErr, monthlyStats) => {
+            const safeStats = statsErr ? { totalRevenue: 0, totalOrders: 0 } : monthlyStats;
 
-            let completed = 0;
-            orders.forEach((order) => {
-                OrderItemController.getItemsByOrderId(order.order_id, (err2, items) => {
-                    if (err2) return res.status(500).send('Failed to fetch order items');
-                    order.items = items || [];
-                    order.summary = computeOrderTotals(order.items, order.total_amount, order.shipping_fee);
-                    completed++;
-                    if (completed === orders.length) {
-                        res.render('orderDashboard', { 
-                            layout: 'layout',
-                            title: 'Order Dashboard',
-                            user: req.session.user,
-                            orders,
-                            startDate,
-                            endDate 
-                        });
+            Order.getMonthlyBestSellers(monthStart, monthEnd, 3, (bestErr, bestSellers) => {
+                const safeBest = bestErr ? [] : bestSellers;
+
+                Order.getAllWithUsers({ startDate, endDate }, (err, orders) => {
+                    if (err) return res.status(500).send('Failed to fetch orders');
+
+                    const renderDashboard = (ordersToRender) => res.render('orderDashboard', { 
+                        layout: 'layout',
+                        title: 'Order Dashboard',
+                        user: req.session.user,
+                        orders: ordersToRender,
+                        startDate,
+                        endDate,
+                        monthlyStats: safeStats,
+                        monthlyBestSellers: safeBest,
+                        monthlyLabel: monthLabel
+                    });
+
+                    if (!orders.length) {
+                        return renderDashboard([]);
                     }
+
+                    let completed = 0;
+                    orders.forEach((order) => {
+                        OrderItemController.getItemsByOrderId(order.order_id, (err2, items) => {
+                            if (err2) return res.status(500).send('Failed to fetch order items');
+                            order.items = items || [];
+                            order.summary = computeOrderTotals(order.items, order.total_amount, order.shipping_fee);
+                            completed++;
+                            if (completed === orders.length) {
+                                renderDashboard(orders);
+                            }
+                        });
+                    });
                 });
             });
         });
