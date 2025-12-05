@@ -61,11 +61,17 @@
                 const priceChanged = !!item.priceChanged || (!isRemoved && capturedPrice !== null && Math.abs(currentPrice - capturedPrice) > 0.0001);
                 const unitPrice = typeof item.effectivePrice !== 'undefined' ? item.effectivePrice : currentPrice;
                 const subtotal = billableQty * unitPrice;
+                const productLabel = item.displayName || item.productName || 'Item';
+                const productLink = (!isRemoved && item.product_id) ? `/product/${item.product_id}` : null;
               %>
               <tr class="cart-row align-middle">
                 <td>
                   <div class="d-flex flex-column align-items-center">
-                    <span><%= item.displayName || item.productName || 'Item' %></span>
+                    <% if (productLink) { %>
+                      <a href="<%= productLink %>" class="cart-product-link fw-semibold text-decoration-none"><%= productLabel %></a>
+                    <% } else { %>
+                      <span><%= productLabel %></span>
+                    <% } %>
                     <% if (isRemoved) { %>
                       <span class="badge bg-danger mt-1">Removed by admin</span>
                     <% } else if (isOutOfStock) { %>
@@ -80,7 +86,14 @@
                 </td>
                 <td>
                   <% if (!isRemoved && (item.displayImage || item.image)) { %>
-                    <img src="/images/<%= item.displayImage || item.image %>" class="cart-image" width="80">
+                    <% const imageSrc = `/images/${item.displayImage || item.image}`; %>
+                    <% if (productLink) { %>
+                      <a href="<%= productLink %>" class="d-inline-block">
+                        <img src="<%= imageSrc %>" alt="<%= productLabel %>" class="cart-image" width="80">
+                      </a>
+                    <% } else { %>
+                      <img src="<%= imageSrc %>" alt="<%= productLabel %>" class="cart-image" width="80">
+                    <% } %>
                   <% } else { %>
                     <span class="text-muted small">Image unavailable</span>
                   <% } %>
@@ -238,6 +251,8 @@
     height: 80px;
     object-fit: contain;
   }
+  .cart-product-link { color: #212529; }
+  .cart-product-link:hover { color: #0d6efd; text-decoration: underline; }
 </style>
 
 <!-- Quantity clamping and button handlers -->
