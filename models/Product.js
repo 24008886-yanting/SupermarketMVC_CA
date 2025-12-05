@@ -36,6 +36,9 @@ const Product = {
 
     add: (productData, callback) => {
         const { productName, quantity, price, category, origin, description, halal, image, additionalImages } = productData;
+        if (!category || !origin) {
+            return callback(new Error('category and origin are required'), null);
+        }
         const sql = 'INSERT INTO products (productName, quantity, price, category, origin, description, halal, image, additionalImages) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
         db.query(
             sql,
@@ -43,8 +46,8 @@ const Product = {
                 productName,
                 quantity,
                 price,
-                category || null,
-                origin || null,
+                category,
+                origin,
                 description || null,
                 typeof halal === 'undefined' ? 0 : halal,
                 image,
@@ -59,6 +62,9 @@ const Product = {
 
     update: (id, productData, callback) => {
         const { productName, quantity, price, category, origin, description, halal, image, additionalImages } = productData;
+        if (!category || !origin) {
+            return callback(new Error('category and origin are required'), null);
+        }
         const sql = 'UPDATE products SET productName = ?, quantity = ?, price = ?, category = ?, origin = ?, description = ?, halal = ?, image = ?, additionalImages = ? WHERE id = ?';
         db.query(
             sql,
@@ -66,8 +72,8 @@ const Product = {
                 productName,
                 quantity,
                 price,
-                category || null,
-                origin || null,
+                category,
+                origin,
                 description || null,
                 typeof halal === 'undefined' ? 0 : halal,
                 image,
