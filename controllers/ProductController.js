@@ -185,42 +185,103 @@ const ProductController = {
         if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send('Access denied.');
 
         const { id } = req.params;
-        const { name, quantity, price, category, origin, description, halal, currentImage, existingAdditionalImages } = req.body;
+        const {
+            name,
+            quantity,
+            price,
+            category,
+            origin,
+            description,
+            halal,
+            currentImage,
+            existingAdditionalImages,
+            removePrimaryImage
+        } = req.body;
 
-        const image = req.files && req.files.image && req.files.image.length ? req.files.image[0].filename : currentImage;
-
-        const storedAdditionalImages = (existingAdditionalImages || '')
-            .split(',')
-            .map(img => img.trim())
-            .filter(Boolean);
-
-        const uploadedAdditionalImages = req.files && req.files.additionalImages ? req.files.additionalImages.map(file => file.filename) : [];
-        const mergedAdditionalImages = [...storedAdditionalImages, ...uploadedAdditionalImages];
-        const halalValue = halal === '1' || halal === 'true' || halal === 'on' ? 1 : 0;
-
-        Product.update(
-            id,
-            {
-                productName: name,
-                quantity,
-                price,
-                category,
-                origin,
-                description,
-                halal: halalValue,
-                image,
-                additionalImages: JSON.stringify(mergedAdditionalImages)
-            },
-            (err, result) => {
-                if (err) {
-                    console.error(err);
-                    req.flash('error', 'Failed to update product. Please try again.');
-                    return res.redirect(`/updateProduct/${id}`);
-                }
-                req.flash('success', 'Product updated successfully.');
-                res.redirect('/inventory');
+        const parseImagesArray = raw => {
+            if (!raw) return [];
+            if (Array.isArray(raw)) return raw.map(img => (img || '').trim()).filter(Boolean);
+            try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed.filter(Boolean);
+            } catch (e) {
+                // fall back to comma-separated parsing
             }
-        );
+            return raw
+                .split(',')
+                .map(img => img.trim())
+                .filter(Boolean);
+        };
+
+        Product.getById(id, (fetchErr, existingProduct) => {
+            if (fetchErr || !existingProduct) {
+                console.error(fetchErr);
+                req.flash('error', 'Unable to load product for update.');
+                return res.redirect('/inventory');
+            }
+
+            const safeCurrentImage = currentImage && currentImage !== 'null' ? currentImage : existingProduct.image || null;
+
+            let image = safeCurrentImage;
+            if (req.files && req.files.image && req.files.image.length) {
+                image = req.files.image[0].filename;
+            } else if (removePrimaryImage) {
+                image = null;
+            }
+
+            // Always trust DB state for existing additional images
+            let storedAdditionalImages = parseImagesArray(existingProduct.additionalImages);
+
+            const removalListRaw = req.body.removeAdditionalImages;
+            const removalList = Array.isArray(removalListRaw)
+                ? removalListRaw
+                : removalListRaw
+                    ? [removalListRaw]
+                    : [];
+
+            const filteredExistingImages = storedAdditionalImages.filter(img => !removalList.includes(img));
+            const uploadedAdditionalImages = req.files && req.files.additionalImages ? req.files.additionalImages.map(file => file.filename) : [];
+            const mergedAdditionalImages = [...filteredExistingImages, ...uploadedAdditionalImages];
+
+            const halalValue = halal === '1' || halal === 'true' || halal === 'on' ? 1 : 0;
+
+            // If primary image is being removed but additional images exist, promote the first additional as primary
+            if (!image && mergedAdditionalImages.length > 0) {
+                image = mergedAdditionalImages.shift(); // remove promoted image from additional list
+            }
+
+            const additionalImagesValue = mergedAdditionalImages.length ? JSON.stringify(mergedAdditionalImages) : null;
+
+            // Validation: require at least one image (primary or additional)
+            if (!image && mergedAdditionalImages.length === 0) {
+                req.flash('error', 'At least one product image is required.');
+                return res.redirect(`/updateProduct/${id}`);
+            }
+
+            Product.update(
+                id,
+                {
+                    productName: name,
+                    quantity,
+                    price,
+                    category,
+                    origin,
+                    description,
+                    halal: halalValue,
+                    image,
+                    additionalImages: additionalImagesValue
+                },
+                (err, result) => {
+                    if (err) {
+                        console.error(err);
+                        req.flash('error', 'Failed to update product. Please try again.');
+                        return res.redirect(`/updateProduct/${id}`);
+                    }
+                    req.flash('success', 'Product updated successfully.');
+                    res.redirect('/inventory');
+                }
+            );
+        });
     },
 
     // Delete product
