@@ -53,8 +53,19 @@ const OrderController = {
             });
 
             if (stockIssues.length) {
-                const names = stockIssues.map(item => item.productName).join(', ');
-                req.flash('error', `Some items are out of stock or exceed available quantity: ${names}. Please update your cart.`);
+                const outOfStockNames = stockIssues
+                    .filter(item => Math.max(0, Number(item.available_quantity ?? item.stock_quantity) || 0) === 0)
+                    .map(item => item.productName);
+                const overLimitNames = stockIssues
+                    .filter(item => Math.max(0, Number(item.available_quantity ?? item.stock_quantity) || 0) > 0)
+                    .map(item => item.productName);
+
+                const messages = [];
+                if (outOfStockNames.length) messages.push(`out of stock: ${outOfStockNames.join(', ')}`);
+                if (overLimitNames.length) messages.push(`exceed available quantity: ${overLimitNames.join(', ')}`);
+
+                const combined = messages.length ? messages.join('; ') : 'out of stock or exceed available quantity';
+                req.flash('error', `Some items ${combined}. Please update your cart.`);
                 return res.redirect('/cart');
             }
 
@@ -224,4 +235,3 @@ const OrderController = {
 };
 
 module.exports = OrderController;
-

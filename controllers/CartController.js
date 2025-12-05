@@ -15,6 +15,44 @@ const CartController = {
                 return res.status(500).send("Failed to load cart");
             }
 
+            // Auto-reduce quantities that exceed current stock (only when stock > 0)
+            const needsAdjustment = cartItems
+                .map(item => {
+                    const available = Math.max(0, Number(item.available_quantity) || 0);
+                    const requested = Math.max(0, Number(item.quantity) || 0);
+                    return { item, available, requested };
+                })
+                .filter(entry => entry.available > 0 && entry.requested > entry.available);
+
+            if (needsAdjustment.length) {
+                const adjustList = needsAdjustment.map(entry => ({
+                    cartId: entry.item.cart_id,
+                    newQty: entry.available,
+                    name: entry.item.productName || entry.item.captured_name || 'Item',
+                    prevQty: Math.max(0, Number(entry.item.quantity) || 0),
+                    currentStock: entry.available
+                }));
+
+                const applyNext = (idx = 0) => {
+                    if (idx >= adjustList.length) {
+                        const details = adjustList.map(a => 
+                            `The quantity of ${a.name} in your cart was reduced from ${a.prevQty} to ${a.newQty} because only ${a.currentStock} is available now. Please review and update the quantity if you want to buy fewer than ${a.newQty}.`
+                        );
+                        details.forEach(msg => req.flash('success', msg));
+                        return res.redirect('/cart');
+                    }
+                    const adj = adjustList[idx];
+                    Cart.updateQuantity(adj.cartId, adj.newQty, (updateErr) => {
+                        if (updateErr) {
+                            console.error(updateErr);
+                        }
+                        applyNext(idx + 1);
+                    });
+                };
+
+                return applyNext(0);
+            }
+
             const enrichedCart = cartItems.map((item) => {
                 const productMissing = !item.product_exists;
                 const available = productMissing ? 0 : Math.max(0, Number(item.available_quantity) || 0);

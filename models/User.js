@@ -1,5 +1,9 @@
 const db = require('../db');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+
+const SALT_ROUNDS = 10;
+const isSha1Hash = (hash) => /^[a-f0-9]{40}$/i.test(hash || '');
 
 const User = {
     // Register new user
@@ -7,17 +11,20 @@ const User = {
         const allowedRoles = ['user', 'admin']; // whitelist roles; defaults to user
         const sanitizedRole = allowedRoles.includes(role) ? role : 'user';
         const normalizedEmail = email.trim().toLowerCase();
-        const hashedPassword = crypto.createHash('sha1').update(password).digest('hex');
 
         const checkSql = 'SELECT id FROM users WHERE email = ? LIMIT 1';
         db.query(checkSql, [normalizedEmail], (checkErr, rows) => {
             if (checkErr) return callback(checkErr, null);
             if (rows.length) return callback(new Error('EMAIL_EXISTS'), null);
 
-            const sql = 'INSERT INTO users (username, email, password, address, contact, role) VALUES (?, ?, ?, ?, ?, ?)';
-            db.query(sql, [username, normalizedEmail, hashedPassword, address, contact, sanitizedRole], (err, result) => {
-                if (err) return callback(err, null);
-                callback(null, { user_id: result.insertId, username, email: normalizedEmail, address, contact, role: sanitizedRole });
+            bcrypt.hash(password, SALT_ROUNDS, (hashErr, hashedPassword) => {
+                if (hashErr) return callback(hashErr, null);
+
+                const sql = 'INSERT INTO users (username, email, password, address, contact, role) VALUES (?, ?, ?, ?, ?, ?)';
+                db.query(sql, [username, normalizedEmail, hashedPassword, address, contact, sanitizedRole], (err, result) => {
+                    if (err) return callback(err, null);
+                    callback(null, { user_id: result.insertId, username, email: normalizedEmail, address, contact, role: sanitizedRole });
+                });
             });
         });
     },
@@ -32,14 +39,25 @@ const User = {
             const user = results[0];
             if (!user) return callback(null, null);
 
-            // Hash the input password with SHA-1
-            const hashedInput = crypto.createHash('sha1').update(password).digest('hex');
+            const storedHash = user.password || '';
 
-            if (hashedInput !== user.password) {
-                return callback(null, null); // password does not match
-            }
+            // Prefer bcrypt comparison; fall back to legacy SHA-1 and upgrade on success
+            bcrypt.compare(password, storedHash, (bcryptErr, isMatch) => {
+                if (bcryptErr) return callback(bcryptErr, null);
+                if (isMatch) return callback(null, user);
 
-            callback(null, user); // successful login
+                // Legacy SHA-1 path
+                if (!isSha1Hash(storedHash)) return callback(null, null);
+
+                const sha1Input = crypto.createHash('sha1').update(password).digest('hex');
+                if (sha1Input !== storedHash) return callback(null, null);
+
+                // Upgrade to bcrypt after a successful legacy check
+                bcrypt.hash(password, SALT_ROUNDS, (hashErr, newHash) => {
+                    if (hashErr) return callback(null, user); // allow login even if upgrade fails
+                    db.query('UPDATE users SET password = ? WHERE id = ?', [newHash, user.id], () => callback(null, user));
+                });
+            });
         });
     },
 
@@ -70,9 +88,26 @@ const User = {
             if (err) return callback(err, null);
             if (results.length === 0) return callback(null, false);
 
-            const storedHash = results[0].password;
-            const hashedInput = crypto.createHash('sha1').update(password).digest('hex');
-            callback(null, hashedInput === storedHash);
+            const storedHash = results[0].password || '';
+
+            bcrypt.compare(password, storedHash, (bcryptErr, isMatch) => {
+                if (bcryptErr) return callback(bcryptErr, null);
+                if (isMatch) return callback(null, true);
+
+                // Legacy SHA-1 fallback
+                if (!isSha1Hash(storedHash)) return callback(null, false);
+                const sha1Input = crypto.createHash('sha1').update(password).digest('hex');
+                if (sha1Input !== storedHash) return callback(null, false);
+
+                // Upgrade to bcrypt after successful legacy match
+                bcrypt.hash(password, SALT_ROUNDS, (hashErr, newHash) => {
+                    if (!hashErr) {
+                        db.query('UPDATE users SET password = ? WHERE id = ?', [newHash, id], () => callback(null, true));
+                    } else {
+                        callback(null, true); // consider it valid even if upgrade fails
+                    }
+                });
+            });
         });
     },
 
@@ -81,18 +116,31 @@ const User = {
         const values = [username, address, contact];
         let sql = 'UPDATE users SET username = ?, address = ?, contact = ?';
 
-        if (password) {
-            const hashedPassword = crypto.createHash('sha1').update(password).digest('hex');
-            sql += ', password = ?';
-            values.push(hashedPassword);
+        const runUpdate = (maybeHashedPassword) => {
+            const finalValues = [...values];
+            let finalSql = sql;
+
+            if (maybeHashedPassword) {
+                finalSql += ', password = ?';
+                finalValues.push(maybeHashedPassword);
+            }
+
+            finalSql += ' WHERE id = ?';
+            finalValues.push(id);
+
+            db.query(finalSql, finalValues, (err, result) => {
+                if (err) return callback(err, null);
+                callback(null, result.affectedRows > 0);
+            });
+        };
+
+        if (!password) {
+            return runUpdate(null);
         }
 
-        sql += ' WHERE id = ?';
-        values.push(id);
-
-        db.query(sql, values, (err, result) => {
-            if (err) return callback(err, null);
-            callback(null, result.affectedRows > 0);
+        bcrypt.hash(password, SALT_ROUNDS, (hashErr, hashedPassword) => {
+            if (hashErr) return callback(hashErr, null);
+            runUpdate(hashedPassword);
         });
     },
 };

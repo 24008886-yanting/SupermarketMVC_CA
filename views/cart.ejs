@@ -8,7 +8,7 @@
   <%
     // Derive cart state for removed and out-of-stock items
     const removedItemsList = typeof removedItems !== 'undefined' ? removedItems : cart.filter(item => item.isRemoved);
-    const outOfStockItems = cart.filter(item => (Number(item.available_quantity) || 0) <= 0 || item.isOutOfStock);
+    const outOfStockItems = cart.filter(item => !item.isRemoved && ((Number(item.available_quantity) || 0) <= 0 || item.isOutOfStock));
     const overLimitItems = cart.filter(item => (Number(item.available_quantity) || 0) > 0 && item.quantity > item.available_quantity);
     const blockCheckoutComputed = typeof blockCheckout !== 'undefined' ? blockCheckout : (outOfStockItems.length > 0 || removedItemsList.length > 0);
     const hasStockProblems = typeof hasStockIssues !== 'undefined' ? hasStockIssues : (outOfStockItems.length || overLimitItems.length || removedItemsList.length);
@@ -23,12 +23,11 @@
           Removed by admin: <%= removedItemsList.map(i => i.displayName || i.productName || 'Item').join(', ') %>. Remove them before checkout.
         <% } %>
         <% if (outOfStockItems.length) { %>
-          Out of stock: <%= outOfStockItems.map(i => i.displayName || i.productName || 'Item').join(', ') %>.
+          Out of stock: <%= outOfStockItems.map(i => i.displayName || i.productName || 'Item').join(', ') %>. Please remove them before checkout.
         <% } %>
         <% if (overLimitItems.length) { %>
-          Exceeds stock: <%= overLimitItems.map(i => i.displayName || i.productName || 'Item').join(', ') %>.
+          Exceeds stock: <%= overLimitItems.map(i => i.displayName || i.productName || 'Item').join(', ') %>. Please update quantities before checkout.
         <% } %>
-        Please update or remove them before checking out.
       </div>
     </div>
   <% } %>
